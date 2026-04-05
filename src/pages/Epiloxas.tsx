@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Upload, Sparkles, Download, AlertTriangle, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,9 +43,26 @@ const DEMO_EMPLOYEES: Employee[] = [
 
 const Epiloxas = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [schedule, setSchedule] = useState<ShiftGroup[] | null>(null);
   const [dragItem, setDragItem] = useState<{ group: number; role: string; index: number } | null>(null);
+
+  // Accept names from 2oG page via navigation state
+  useEffect(() => {
+    const state = location.state as { names?: string[] } | null;
+    if (state?.names && state.names.length > 0) {
+      const imported: Employee[] = state.names.map((name, i) => ({
+        id: String(i + 1),
+        name,
+        rank: "",
+      }));
+      setEmployees(imported);
+      toast.success(`${imported.length} names imported from 2ο Γραφείο`);
+      // Clear state so it doesn't re-import on navigation
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
