@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, Sparkles, Download, GripVertical, X } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Download, GripVertical, X, Users, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,12 +30,28 @@ const PATTERNS: PatternConfig[] = [
   { workDays: 2, restDays: 2, label: "2 on / 2 off" },
 ];
 
+const DEMO_NAMES = [
+  "Παπαδόπουλος Γ.",
+  "Κωνσταντίνου Α.",
+  "Νικολάου Δ.",
+  "Αθανασίου Κ.",
+  "Δημητρίου Ε.",
+  "Γεωργίου Μ.",
+  "Ιωάννου Π.",
+  "Βασιλείου Σ.",
+  "Χριστοδούλου Ν.",
+  "Μιχαηλίδης Θ.",
+  "Παναγιώτου Λ.",
+  "Σωτηρίου Φ.",
+];
+
 const SecondOffice = () => {
   const navigate = useNavigate();
   const [names, setNames] = useState<string[]>([]);
   const [nameInput, setNameInput] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [pattern, setPattern] = useState<PatternConfig>(PATTERNS[0]);
+  const [personsPerDay, setPersonsPerDay] = useState(2);
   const [schedule, setSchedule] = useState<Record<string, string[]> | null>(null);
   const [dragItem, setDragItem] = useState<{ date: string; index: number } | null>(null);
 
@@ -75,15 +91,18 @@ const SecondOffice = () => {
 
     const result: Record<string, string[]> = {};
     let nameIdx = 0;
-    let dayCounter = 0;
     let isWorkPhase = true;
     let phaseCounter = 0;
 
     for (const day of days) {
       const key = format(day, "yyyy-MM-dd");
       if (isWorkPhase) {
-        result[key] = [names[nameIdx % names.length]];
-        nameIdx++;
+        const assigned: string[] = [];
+        for (let p = 0; p < personsPerDay; p++) {
+          assigned.push(names[nameIdx % names.length]);
+          nameIdx++;
+        }
+        result[key] = assigned;
       } else {
         result[key] = ["REST"];
       }
@@ -94,7 +113,6 @@ const SecondOffice = () => {
         isWorkPhase = !isWorkPhase;
         phaseCounter = 0;
       }
-      dayCounter++;
     }
 
     setSchedule(result);
@@ -159,6 +177,18 @@ const SecondOffice = () => {
                 Upload CSV
                 <input type="file" accept=".csv,.txt" className="hidden" onChange={handleFileUpload} />
               </label>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setNames(DEMO_NAMES);
+                  setSchedule(null);
+                  toast.success(`${DEMO_NAMES.length} demo names loaded`);
+                }}
+              >
+                <Users className="mr-1 h-4 w-4" />
+                Load Demo
+              </Button>
               <span className="text-xs text-muted-foreground">or add manually:</span>
               <div className="flex items-center gap-2">
                 <Input
@@ -246,12 +276,24 @@ const SecondOffice = () => {
               <p className="text-xs text-muted-foreground">
                 {pattern.workDays} working day(s) followed by {pattern.restDays} rest day(s)
               </p>
+              <div className="mt-4">
+                <Label htmlFor="personsPerDay">Persons needed per day</Label>
+                <Input
+                  id="personsPerDay"
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={personsPerDay}
+                  onChange={(e) => setPersonsPerDay(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="mt-1 w-24"
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Generate */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button onClick={generate} disabled={names.length === 0 || days.length === 0}>
             <Sparkles className="mr-2 h-4 w-4" />
             Generate Schedule
@@ -260,6 +302,15 @@ const SecondOffice = () => {
             <Button variant="outline" onClick={downloadCSV}>
               <Download className="mr-2 h-4 w-4" />
               Download CSV
+            </Button>
+          )}
+          {names.length > 0 && (
+            <Button
+              variant="secondary"
+              onClick={() => navigate("/epiloxas", { state: { names } })}
+            >
+              <Send className="mr-2 h-4 w-4" />
+              Send to Επιλοχίας
             </Button>
           )}
         </div>
