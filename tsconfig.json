@@ -4,6 +4,8 @@
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+     "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "paths": {
       "@/*": [
         "./src/*"

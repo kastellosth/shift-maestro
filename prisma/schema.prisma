@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Employee {
+  id      String @id @default(cuid())
+  name    String
+  surname String
+  company Int
+
+  // Transitional: later derived from assignment history
+  score Int @default(0)
+
+  esso          String?
+  essoEntryDate DateTime?
+  iClass        String?
+  armed         Boolean   @default(false)
+  notes         String?
+
+  assignmentMemberships AssignmentMember[]
+}
+
+model Job {
+  id             String @id @default(cuid())
+  key            String @unique
+  label          String
+  difficulty     Int
+  requiredPeople Int
+
+  assignments Assignment[]
+}
+
+model ShiftGroup {
+  id         String @id @default(cuid())
+  name       String
+  label      String
+  difficulty Int
+
+  assignments Assignment[]
+}
+
+model Assignment {
+  id String @id @default(cuid())
+
+  jobId String
+  job   Job    @relation(fields: [jobId], references: [id])
+
+  shiftGroupId String
+  shiftGroup   ShiftGroup @relation(fields: [shiftGroupId], references: [id])
+
+  date DateTime
+
+  members AssignmentMember[]
+
+  createdAt DateTime @default(now())
+}
+
+model AssignmentMember {
+  id String @id @default(cuid())
+
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  pinned Boolean @default(false)
+
+  @@unique([assignmentId, employeeId])
+}

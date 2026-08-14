@@ -16,7 +16,7 @@ const Index = () => {
             </div>
             <h1 className="text-xl font-semibold text-foreground">Shift Scheduler</h1>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/config")}>
+          <Button onClick={() => navigate("/config")}>
             <Settings className="mr-2 h-4 w-4" />
             Settings
           </Button>

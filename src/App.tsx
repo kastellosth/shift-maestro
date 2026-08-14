@@ -4,11 +4,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
-import Epiloxas from "./pages/Epiloxas.tsx";
+import Epiloxas from "./pages/epiloxas/Epiloxas.tsx";
 import SecondOffice from "./pages/SecondOffice.tsx";
 import Config from "./pages/Config.tsx";
 import NotFound from "./pages/NotFound.tsx";
-
+import PersonnelManager from "./pages/PersonnelManager.tsx";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -22,7 +22,7 @@ const App = () => (
           <Route path="/epiloxas" element={<Epiloxas />} />
           <Route path="/2og" element={<SecondOffice />} />
           <Route path="/config" element={<Config />} />
-          <Route path="*" element={<NotFound />} />
+<Route path="/personel" element={<PersonnelManager />} />          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
