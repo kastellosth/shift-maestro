@@ -13,7 +13,7 @@
 // All changes are written to localStorage via saveConfig() so Epiloxas.tsx
 // picks them up on the next mount (it calls loadConfig() in useState initialiser).
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Plus, Trash2, Save, Users, ChevronUp,
@@ -24,8 +24,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { Job, ShiftGroup } from "../types";
-import { DEFAULT_JOBS, DEFAULT_SHIFTS, saveConfig, loadConfig } from "./epiloxas/constants";
-
+import {
+  DEFAULT_JOBS,
+  DEFAULT_SHIFTS,
+} from "./epiloxas/constants";
 // ── Tiny id generator (no uuid dep needed) ────────────────────────────────────
 const uid = () => `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
@@ -35,16 +37,21 @@ const Config = () => {
   const navigate = useNavigate();
 
   // Initialise from localStorage (or defaults if first visit)
-  const saved = loadConfig();
-  const [jobs,   setJobs]   = useState<Job[]>(saved.jobs);
-  const [shifts, setShifts] = useState<ShiftGroup[]>(saved.shifts);
+  const [jobs, setJobs] =
+    useState<Job[]>(DEFAULT_JOBS);
+
+  const [shifts, setShifts] =
+    useState<ShiftGroup[]>(DEFAULT_SHIFTS);
+
+  const [configLoading, setConfigLoading] =
+    useState(true);
   const [orgName, setOrgName] = useState<string>(
     () => localStorage.getItem("epiloxas_orgname") ?? "",
   );
 
   // ── Derived totals ─────────────────────────────────────────────────────────
-  const peoplePerShift  = jobs.reduce((s, j) => s + j.requiredPeople, 0);
-  const totalPeople     = shifts.length * peoplePerShift;
+  const peoplePerShift = jobs.reduce((s, j) => s + j.requiredPeople, 0);
+  const totalPeople = shifts.length * peoplePerShift;
 
   // ── Job helpers ────────────────────────────────────────────────────────────
   const addJob = () => {
@@ -84,20 +91,82 @@ const Config = () => {
     setShifts((prev) => prev.filter((s) => s.id !== id));
   };
 
+  useEffect(() => {
+    const loadConfigFromBackend = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/config"
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to load config: ${response.status}`
+          );
+        }
+
+        const data = await response.json();
+
+        setJobs(data.jobs);
+        setShifts(data.shifts);
+      } catch (error) {
+        console.error(
+          "Failed to load configuration:",
+          error
+        );
+
+        toast.error(
+          "Could not load scheduling configuration"
+        );
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+
+    loadConfigFromBackend();
+  }, []);
   // ── Save ───────────────────────────────────────────────────────────────────
-  const handleSave = () => {
-    // Validate: every job must have a non-empty label
-    if (jobs.some((j) => !j.label.trim())) {
-      toast.error("All jobs must have a label");
-      return;
+  const handleSave = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:3000/api/config",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            jobs,
+            shifts,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ?? "Failed to save configuration"
+        );
+      }
+
+      // Important:
+      // Use the canonical version returned by the database.
+      setJobs(data.jobs);
+      setShifts(data.shifts);
+
+      toast.success("Configuration saved");
+    } catch (error) {
+      console.error(
+        "Failed to save configuration:",
+        error
+      );
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to save configuration"
+      );
     }
-    if (shifts.some((s) => !s.name.trim())) {
-      toast.error("All shifts must have a name");
-      return;
-    }
-    saveConfig(jobs, shifts);
-    localStorage.setItem("epiloxas_orgname", orgName);
-    toast.success("Settings saved — reload Epiloxas to apply");
   };
 
   const handleReset = () => {
@@ -317,9 +386,15 @@ const Config = () => {
               <ChevronUp className="h-3.5 w-3.5 mr-1" />
               Back
             </Button>
-            <Button size="sm" onClick={handleSave}>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={configLoading}
+            >
               <Save className="h-3.5 w-3.5 mr-1.5" />
-              Save Settings
+              {configLoading
+                ? "Loading..."
+                : "Save Settings"}
             </Button>
           </div>
         </div>

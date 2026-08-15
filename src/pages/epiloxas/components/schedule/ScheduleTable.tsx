@@ -9,17 +9,18 @@
 //   2. HasNote → amber ring, StickyNote icon  
 //   3. Normal  → muted background
 
-import { Download, AlertTriangle, GripVertical, StickyNote, Pin } from "lucide-react";
+import { Download, AlertTriangle, GripVertical, StickyNote, Pin, CheckCircle2, } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import type { Employee, Job, ScheduleGroup, ShiftGroup , PinnedAssignment} from "../../../../types";
+import type { Employee, Job, ScheduleGroup, ShiftGroup, PinnedAssignment } from "../../../../types";
 import {
   scoreStyle, workloadStyle, detectConflicts,
   buildScheduleCSV, downloadCSV, assignmentScore, getEmployeeByName
 } from "../../utils";
+
 
 interface ScheduleTableProps {
   schedule: ScheduleGroup[];
@@ -40,10 +41,14 @@ interface ScheduleTableProps {
     targetJob: string,
     targetPerson: number
   ) => void;
+
+  onFinalize: () => Promise<void>;
+  isFinalizing: boolean;
 }
 
 export function ScheduleTable({
-  schedule, employees, jobs, shifts, onDragStart, onDrop,pins
+  schedule, employees, jobs, shifts, onDragStart, onDrop, pins, onFinalize,
+  isFinalizing,
 }: ScheduleTableProps) {
   const conflicts = detectConflicts(schedule);
 
@@ -57,31 +62,31 @@ export function ScheduleTable({
     personIdx: number,
     workload: number,
   ) => {
-    const aScore  = assignmentScore(person, workload, employees);
-    const emp     = getEmployeeByName(person, employees);
+    const aScore = assignmentScore(person, workload, employees);
+    const emp = getEmployeeByName(person, employees);
     const hasNote = !!emp?.notes;
 
-   const pin = emp
-  ? pins[emp.id]
-  : undefined;
+    const pin = emp
+      ? pins[emp.id]
+      : undefined;
 
-const isPinned =
-  !!pin &&
-  pin.jobKey === jobKey &&
-  pin.shiftId === shiftId;
+    const isPinned =
+      !!pin &&
+      pin.jobKey === jobKey &&
+      pin.shiftId === shiftId;
 
     // Style priority: pinned > has-note > normal
     const containerClass = isPinned
       ? "border-blue-400/70 bg-blue-50 dark:bg-blue-950/30"
       : hasNote
-      ? "border-amber-400/60 bg-amber-50 dark:bg-amber-950/30"
-      : "border-transparent bg-muted";
+        ? "border-amber-400/60 bg-amber-50 dark:bg-amber-950/30"
+        : "border-transparent bg-muted";
 
     const nameClass = isPinned
       ? "font-semibold text-blue-800 dark:text-blue-300"
       : hasNote
-      ? "font-semibold text-amber-800 dark:text-amber-300"
-      : "";
+        ? "font-semibold text-amber-800 dark:text-amber-300"
+        : "";
 
     return (
       <TableCell
@@ -125,10 +130,32 @@ const isPinned =
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">Generated Schedule</CardTitle>
-        <Button variant="outline" size="sm" onClick={handleDownload}>
-          <Download className="mr-2 h-4 w-4" />
-          Download CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownload}
+            disabled={isFinalizing}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download CSV
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={onFinalize}
+            disabled={
+              isFinalizing ||
+              conflicts.length > 0
+            }
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+
+            {isFinalizing
+              ? "Finalizing..."
+              : "Finalize Schedule"}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
 

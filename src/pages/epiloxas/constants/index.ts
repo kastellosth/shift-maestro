@@ -205,27 +205,4 @@ export const API_BASE = "http://localhost:3000/api";
 // ── Config persistence ────────────────────────────────────────────────────────
 //
 // Jobs and shifts can be customised in the Config page and are saved to
-// localStorage so Epiloxas picks them up on the next load.
-
-const LS_JOBS   = "epiloxas_jobs";
-const LS_SHIFTS = "epiloxas_shifts";
-
-export function saveConfig(jobs: Job[], shifts: ShiftGroup[]): void {
-  try {
-    localStorage.setItem(LS_JOBS,   JSON.stringify(jobs));
-    localStorage.setItem(LS_SHIFTS, JSON.stringify(shifts));
-  } catch { /* localStorage unavailable */ }
-}
-
-export function loadConfig(): { jobs: Job[]; shifts: ShiftGroup[] } {
-  try {
-    const rawJobs   = localStorage.getItem(LS_JOBS);
-    const rawShifts = localStorage.getItem(LS_SHIFTS);
-    return {
-      jobs:   rawJobs   ? (JSON.parse(rawJobs)   as Job[])        : DEFAULT_JOBS,
-      shifts: rawShifts ? (JSON.parse(rawShifts) as ShiftGroup[]) : DEFAULT_SHIFTS,
-    };
-  } catch {
-    return { jobs: DEFAULT_JOBS, shifts: DEFAULT_SHIFTS };
-  }
-}
+// localStora

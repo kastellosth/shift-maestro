@@ -9,19 +9,23 @@ import { Sparkles, ArrowLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-import type { Employee, PinnedAssignment } from "../../types";
-import { loadConfig } from "./constants";
+import type {
+  Employee,
+  Job,
+  ShiftGroup,
+  PinnedAssignment,
+} from "../../types";
 import { randomScore } from "./utils";
 
-import { useDbLoader }  from "./hooks/useDbLoader";
+import { useDbLoader } from "./hooks/useDbLoader";
 import { useScheduler } from "./hooks/useScheduler";
 
-import { LoadEmployeesCard }    from "./components/employees/LoadEmployeesCard";
-import { EmployeeTable }        from "./components/employees/EmployeeTable";
-import { ScheduleTable }        from "./components/schedule/ScheduleTable";
-import { ScheduleStatsCard }    from "./components/schedule/ScheduleStatsCard";
-import { NoteModal }            from "./components/modals/NoteModal";
-import { DbLoaderModal }        from "./components/modals/DbLoaderModal";
+import { LoadEmployeesCard } from "./components/employees/LoadEmployeesCard";
+import { EmployeeTable } from "./components/employees/EmployeeTable";
+import { ScheduleTable } from "./components/schedule/ScheduleTable";
+import { ScheduleStatsCard } from "./components/schedule/ScheduleStatsCard";
+import { NoteModal } from "./components/modals/NoteModal";
+import { DbLoaderModal } from "./components/modals/DbLoaderModal";
 
 const Epiloxas = () => {
   const navigate = useNavigate();
@@ -29,90 +33,129 @@ const Epiloxas = () => {
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pins, setPins] = useState<
-  Record<string, PinnedAssignment>
->({});
+    Record<string, PinnedAssignment>
+  >({});
   // Load jobs & shifts from config (localStorage) so Config page changes take effect
-  const [jobs]    = useState(() => loadConfig().jobs);
-  const [shifts]  = useState(() => loadConfig().shifts);
+  const [jobs, setJobs] =
+    useState<Job[]>([]);
 
+  const [shifts, setShifts] =
+    useState<ShiftGroup[]>([]);
+
+  const [configLoading, setConfigLoading] =
+    useState(true);
   // noteModal carries the empId so the modal can read the current employee
   const [noteModal, setNoteModal] = useState<{ empId: string; text: string } | null>(null);
 
-  const scheduler = useScheduler(employees, jobs, shifts,pins);
-  const dbLoader  = useDbLoader();
+  const scheduler = useScheduler(employees, jobs, shifts, pins);
+  const dbLoader = useDbLoader();
 
-  // ── Accept names forwarded via router state ───────────────────────────────
-useEffect(() => {
-  const state = location.state as { names?: string[] } | null;
 
-  if (!state?.names?.length) return;
+  useEffect(() => {
+    const loadSchedulingConfig = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/config"
+        );
 
-  const imported: Employee[] = state.names.map((n, i) => {
-    const parts = n.trim().split(" ");
+        if (!response.ok) {
+          throw new Error(
+            `Failed to load config: ${response.status}`
+          );
+        }
 
-    return {
-      id: String(i + 1),
-      surname: parts[0] ?? n,
-      name: parts.slice(1).join(" ") || "",
-      company: 1,
-      score: randomScore(),
+        const data = await response.json();
 
-      esso: null,
-      essoEntryDate: null,
-      iClass: null,
-      armed: false,
-      notes: null,
+        setJobs(data.jobs);
+        setShifts(data.shifts);
+      } catch (error) {
+        console.error(
+          "Failed to load scheduling config:",
+          error
+        );
+
+        toast.error(
+          "Could not load scheduling configuration"
+        );
+      } finally {
+        setConfigLoading(false);
+      }
     };
-  });
 
-  setEmployees(imported);
+    loadSchedulingConfig();
+  }, []);
+  // ── Accept names forwarded via router state ───────────────────────────────
+  useEffect(() => {
+    const state = location.state as { names?: string[] } | null;
 
-  toast.success(
-    `${imported.length} names imported from 2ο Γραφείο`
-  );
+    if (!state?.names?.length) return;
 
-  window.history.replaceState(
-    {},
-    document.title
-  );
-}, [location.state]);
+    const imported: Employee[] = state.names.map((n, i) => {
+      const parts = n.trim().split(" ");
+
+      return {
+        id: String(i + 1),
+        surname: parts[0] ?? n,
+        name: parts.slice(1).join(" ") || "",
+        company: 1,
+        score: randomScore(),
+
+        esso: null,
+        essoEntryDate: null,
+        iClass: null,
+        armed: false,
+        notes: null,
+      };
+    });
+
+    setEmployees(imported);
+
+    toast.success(
+      `${imported.length} names imported from 2ο Γραφείο`
+    );
+
+    window.history.replaceState(
+      {},
+      document.title
+    );
+  }, [location.state]);
 
   // ── Note + pin handler ────────────────────────────────────────────────────
   // NoteModal now passes back both text AND the optional pin.
- const handleNoteSave = (
-  empId: string,
-  text: string,
-  pinned: PinnedAssignment | null
-) => {
-  // Employee note is employee data.
-  setEmployees((prev) =>
-    prev.map((employee) =>
-      employee.id === empId
-        ? {
+  const handleNoteSave = (
+    empId: string,
+    text: string,
+    pinned: PinnedAssignment | null
+  ) => {
+    // Employee note is employee data.
+    setEmployees((prev) =>
+      prev.map((employee) =>
+        employee.id === empId
+          ? {
             ...employee,
             notes: text.trim() || null,
           }
-        : employee
-    )
-  );
+          : employee
+      )
+    );
 
-  // Pin is schedule-editing state.
-  setPins((prev) => {
-    const next = { ...prev };
+    // Pin is schedule-editing state.
+    setPins((prev) => {
+      const next = { ...prev };
 
-    if (pinned) {
-      next[empId] = pinned;
-    } else {
-      delete next[empId];
-    }
+      if (pinned) {
+        next[empId] = pinned;
+      } else {
+        delete next[empId];
+      }
 
-    return next;
-  });
+      return next;
+    });
 
-  setNoteModal(null);
+    setNoteModal(null);
 
-  toast.success("Saved");
-};
+    toast.success("Saved");
+  };
 
   const handleLoadEmployees = (next: Employee[]) => {
     setEmployees(next);
@@ -127,13 +170,13 @@ useEffect(() => {
       {/* ── Modals ─────────────────────────────────────────────────────── */}
       {dbLoader.dbModal && (
         <DbLoaderModal
-          dbStep={dbLoader.dbStep}          setDbStep={dbLoader.setDbStep}
-          dbLoading={dbLoader.dbLoading}    onClose={dbLoader.closeDbModal}
+          dbStep={dbLoader.dbStep} setDbStep={dbLoader.setDbStep}
+          dbLoading={dbLoader.dbLoading} onClose={dbLoader.closeDbModal}
           onLoadAll={() => dbLoader.handleLoadAllFromDB(handleLoadEmployees)}
           onOpenCompanyPicker={dbLoader.handleOpenCompanyPicker}
           dbEmployees={dbLoader.dbEmployees}
           dbCompanies={dbLoader.dbCompanies}
-          dbSearch={dbLoader.dbSearch}      dbSearchQ={dbLoader.dbSearchQ}
+          dbSearch={dbLoader.dbSearch} dbSearchQ={dbLoader.dbSearchQ}
           setDbSearch={dbLoader.setDbSearch}
           companyChecks={dbLoader.companyChecks}
           companyCollapsed={dbLoader.companyCollapsed}
@@ -188,9 +231,16 @@ useEffect(() => {
             employees={employees}
             onNoteClick={(empId, text) => setNoteModal({ empId, text })}
             headerAction={
-              <Button onClick={scheduler.generateSchedule} size="sm">
+              <Button
+                onClick={scheduler.generateSchedule}
+                size="sm"
+                disabled={configLoading}
+              >
                 <Sparkles className="mr-2 h-4 w-4" />
-                Generate Schedule
+
+                {configLoading
+                  ? "Loading Config..."
+                  : "Generate Schedule"}
               </Button>
             }
           />
@@ -205,7 +255,9 @@ useEffect(() => {
               shifts={shifts}
               onDragStart={scheduler.handleDragStart}
               onDrop={scheduler.handleDrop}
-                pins={pins}
+              pins={pins}
+              onFinalize={scheduler.finalizeSchedule}
+              isFinalizing={scheduler.isFinalizing}
             />
             <ScheduleStatsCard
               schedule={scheduler.schedule}
