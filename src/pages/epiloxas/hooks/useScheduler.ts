@@ -64,7 +64,8 @@ export function useScheduler(
   employees: Employee[],
   jobs: Job[],
   shifts: ShiftGroup[],
-  pins: Record<string, PinnedAssignment>
+  pins: Record<string, PinnedAssignment>,
+  targetDateInput: string
 ): UseSchedulerReturn {
   const [schedule, setSchedule] =
     useState<ScheduleGroup[] | null>(null);
@@ -131,14 +132,28 @@ export function useScheduler(
       0
     );
 
-  const getScheduleDay = (): Date => {
-    const now = new Date();
+  const parseTargetDate = (
+    value: string
+  ): Date | null => {
+    const parts = value
+      .split("-")
+      .map(Number);
+
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    const [year, month, day] = parts;
+
+    if (!year || !month || !day) {
+      return null;
+    }
 
     return new Date(
       Date.UTC(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate()
+        year,
+        month - 1,
+        day
       )
     );
   };
@@ -152,7 +167,13 @@ export function useScheduler(
       return;
     }
 
-    const targetDate = getScheduleDay();
+    const targetDate =
+      parseTargetDate(targetDateInput);
+
+    if (!targetDate) {
+      toast.error("Choose a valid schedule date");
+      return;
+    }
 
     setScheduleDate(targetDate);
 

@@ -8,7 +8,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Sparkles, ArrowLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-
+import { Input } from "@/components/ui/input";
 import type {
   Employee,
   Job,
@@ -27,10 +27,21 @@ import { ScheduleStatsCard } from "./components/schedule/ScheduleStatsCard";
 import { NoteModal } from "./components/modals/NoteModal";
 import { DbLoaderModal } from "./components/modals/DbLoaderModal";
 
+function todayInputValue(): string {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 const Epiloxas = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
+  const [targetDate, setTargetDate] =
+    useState(todayInputValue);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pins, setPins] = useState<
     Record<string, PinnedAssignment>
@@ -47,7 +58,14 @@ const Epiloxas = () => {
   // noteModal carries the empId so the modal can read the current employee
   const [noteModal, setNoteModal] = useState<{ empId: string; text: string } | null>(null);
 
-  const scheduler = useScheduler(employees, jobs, shifts, pins);
+  const scheduler =
+    useScheduler(
+      employees,
+      jobs,
+      shifts,
+      pins,
+      targetDate
+    );
   const dbLoader = useDbLoader();
 
 
@@ -231,17 +249,29 @@ const Epiloxas = () => {
             employees={employees}
             onNoteClick={(empId, text) => setNoteModal({ empId, text })}
             headerAction={
-              <Button
-                onClick={scheduler.generateSchedule}
-                size="sm"
-                disabled={configLoading}
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => {
+                    setTargetDate(e.target.value);
+                    scheduler.resetSchedule();
+                  }}
+                  className="h-9 w-40"
+                />
 
-                {configLoading
-                  ? "Loading Config..."
-                  : "Generate Schedule"}
-              </Button>
+                <Button
+                  onClick={scheduler.generateSchedule}
+                  size="sm"
+                  disabled={configLoading}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+
+                  {configLoading
+                    ? "Loading Config..."
+                    : "Generate Schedule"}
+                </Button>
+              </div>
             }
           />
         )}
