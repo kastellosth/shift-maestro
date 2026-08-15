@@ -285,6 +285,272 @@ describe("buildSchedule historical ranking", () => {
 
   const noPins: Record<string, PinnedAssignment> = {};
 
+  it("prefers an employee whose heavy workload is older", () => {
+    const twoEmployees = [
+      employee("e1", "RECENT"),
+      employee("e2", "OLD"),
+    ];
+
+    const heavyJob: Job = {
+      id: "heavy-id",
+      key: "heavy",
+      label: "Heavy Duty",
+      difficulty: 9,
+      requiredPeople: 1,
+    };
+
+    const testHistory: Record<
+      string,
+      HistoricalAssignment[]
+    > = {
+      e1: [
+        {
+          date: new Date(
+            "2026-08-13T00:00:00.000Z"
+          ),
+          job: heavyJob,
+          shiftGroup: shifts[0],
+        },
+      ],
+
+      e2: [
+        {
+          date: new Date(
+            "2026-08-01T00:00:00.000Z"
+          ),
+          job: heavyJob,
+          shiftGroup: shifts[0],
+        },
+      ],
+    };
+
+    const schedule = buildSchedule(
+      twoEmployees,
+      singleGuardJob,
+      shifts,
+      testHistory,
+      targetDate,
+      noPins
+    );
+
+    const guard = findRow(
+      schedule,
+      "guard"
+    );
+
+    expect(guard.people[0]).toBe(
+      "TEST OLD"
+    );
+  });
+
+  it("ignores future-dated history when calculating fatigue", () => {
+    const twoEmployees = [
+      employee("e1", "FUTURE"),
+      employee("e2", "NORMAL"),
+    ];
+
+    const heavyJob: Job = {
+      id: "heavy-id",
+      key: "heavy",
+      label: "Heavy Duty",
+      difficulty: 9,
+      requiredPeople: 1,
+    };
+
+    const testHistory: Record<
+      string,
+      HistoricalAssignment[]
+    > = {
+      e1: [
+        {
+          date: new Date(
+            "2026-08-20T00:00:00.000Z"
+          ),
+          job: heavyJob,
+          shiftGroup: shifts[0],
+        },
+      ],
+
+      e2: [],
+    };
+
+    const schedule = buildSchedule(
+      twoEmployees,
+      singleGuardJob,
+      shifts,
+      testHistory,
+      targetDate,
+      noPins
+    );
+
+    const guard = findRow(
+      schedule,
+      "guard"
+    );
+
+    // Future history should not count as fatigue.
+    // Both candidates therefore tie on job repetition
+    // and fatigue; fixture order determines the result.
+    expect(guard.people[0]).toBe(
+      "TEST FUTURE"
+    );
+  });
+
+  it("prefers lower historical workload when repetition and fatigue are equal", () => {
+    const low = {
+      ...employee("e1", "LOW"),
+      score: 10,
+    };
+
+    const high = {
+      ...employee("e2", "HIGH"),
+      score: 50,
+    };
+
+    const schedule = buildSchedule(
+      [high, low],
+      singleGuardJob,
+      shifts,
+      {},
+      targetDate,
+      noPins
+    );
+
+    const guard = findRow(schedule, "guard");
+
+    expect(guard.people[0]).toBe("TEST LOW");
+  });
+
+
+  it("never assigns the same employee to two different slots", () => {
+    const schedule = buildSchedule(
+      employees,
+      jobs,
+      shifts,
+      {},
+      targetDate,
+      noPins
+    );
+
+    const people = allPeople(schedule);
+
+    expect(new Set(people).size).toBe(people.length);
+  });
+
+
+  it("does not duplicate employees when there are fewer employees than required slots", () => {
+    const schedule = buildSchedule(
+      [employee("e1", "ONE")],
+      singleGuardJob.map((job) => ({
+        ...job,
+        requiredPeople: 2,
+      })),
+      shifts,
+      {},
+      targetDate,
+      noPins
+    );
+
+    const guard = findRow(schedule, "guard");
+
+    expect(guard.people).toHaveLength(1);
+    expect(guard.people[0]).toBe("TEST ONE");
+  });
+
+  it("honors a pin even when that employee would rank poorly normally", () => {
+    const tired = employee("e1", "TIRED");
+    const fresh = employee("e2", "FRESH");
+
+    const testHistory: Record<
+      string,
+      HistoricalAssignment[]
+    > = {
+      e1: [
+        {
+          date: new Date("2026-08-13T00:00:00.000Z"),
+          job: {
+            id: "heavy",
+            key: "heavy",
+            label: "Heavy",
+            difficulty: 10,
+            requiredPeople: 1,
+          },
+          shiftGroup: shifts[0],
+        },
+      ],
+      e2: [],
+    };
+
+    const pins: Record<string, PinnedAssignment> = {
+      e1: {
+        jobKey: "guard",
+        shiftId: "A",
+      },
+    };
+
+    const schedule = buildSchedule(
+      [tired, fresh],
+      singleGuardJob,
+      shifts,
+      testHistory,
+      targetDate,
+      pins
+    );
+
+    const guard = findRow(schedule, "guard");
+
+    expect(guard.people[0]).toBe("TEST TIRED");
+  });
+
+  it("prefers a rested employee when job repetition is equal", () => {
+    const twoEmployees = [
+      employee("e1", "TIRED"),
+      employee("e2", "RESTED"),
+    ];
+
+    const otherJob: Job = {
+      id: "other-id",
+      key: "other",
+      label: "Other Duty",
+      difficulty: 9,
+      requiredPeople: 1,
+    };
+
+    const recentHistory: HistoricalAssignment = {
+      date: new Date(
+        "2026-08-13T00:00:00.000Z"
+      ),
+      job: otherJob,
+      shiftGroup: shifts[0],
+    };
+
+    const testHistory: Record<
+      string,
+      HistoricalAssignment[]
+    > = {
+      e1: [recentHistory],
+      e2: [],
+    };
+
+    const schedule = buildSchedule(
+      twoEmployees,
+      singleGuardJob,
+      shifts,
+      testHistory,
+      targetDate,
+      noPins
+    );
+
+    const guard = findRow(
+      schedule,
+      "guard"
+    );
+
+    expect(guard.people[0]).toBe(
+      "TEST RESTED"
+    );
+  });
+
   function historicalGuard(
     date: string
   ): HistoricalAssignment {
