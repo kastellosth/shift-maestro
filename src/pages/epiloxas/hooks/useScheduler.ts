@@ -68,57 +68,59 @@ export function useScheduler(
 ): UseSchedulerReturn {
   const [schedule, setSchedule] =
     useState<ScheduleGroup[] | null>(null);
-    const [isFinalizing, setIsFinalizing] =
-  useState(false);
+  const [isFinalizing, setIsFinalizing] =
+    useState(false);
 
   // Temporary empty history.
   //
   // Next step will be replacing this with real Assignment history
   // loaded from the backend/database.
   const [history, setHistory] =
-  useState<AssignmentHistory>({});
-  
-  
-useEffect(() => {
-  const loadHistory = async () => {
-    try {
-      const response = await fetch(
-        "http://localhost:3000/api/assignment-history"
-      );
+    useState<AssignmentHistory>({});
 
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load history: ${response.status}`
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/assignment-history"
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to load history: ${response.status}`
+          );
+        }
+
+        const raw = await response.json();
+
+        const parsed = parseAssignmentHistory(
+          raw as ApiAssignmentHistory
+        );
+
+        setHistory(parsed);
+      } catch (error) {
+        console.error(
+          "Failed to load assignment history:",
+          error
+        );
+
+        toast.error(
+          "Could not load assignment history"
         );
       }
+    };
 
-      const raw = await response.json();
-
-const parsed = parseAssignmentHistory(
-  raw as ApiAssignmentHistory
-);
-
-setHistory(parsed);
-    } catch (error) {
-      console.error(
-        "Failed to load assignment history:",
-        error
-      );
-
-      toast.error(
-        "Could not load assignment history"
-      );
-    }
-  };
-
-  loadHistory();
-}, []);
+    loadHistory();
+  }, []);
 
   const [dragItem, setDragItem] = useState<{
     groupIdx: number;
     jobKey: string;
     personIdx: number;
   } | null>(null);
+  const [scheduleDate, setScheduleDate] =
+    useState<Date | null>(null);
 
   // ── Required personnel ───────────────────────────────────────────────────
 
@@ -129,6 +131,17 @@ setHistory(parsed);
       0
     );
 
+  const getScheduleDay = (): Date => {
+    const now = new Date();
+
+    return new Date(
+      Date.UTC(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      )
+    );
+  };
   // ── Generate schedule ────────────────────────────────────────────────────
 
   const generateSchedule = () => {
@@ -139,16 +152,18 @@ setHistory(parsed);
       return;
     }
 
-    const targetDate = new Date();
+    const targetDate = getScheduleDay();
+
+    setScheduleDate(targetDate);
 
     const groups = buildSchedule(
-  employees,
-  jobs,
-  shifts,
-  history,
-  targetDate,
-  pins
-);
+      employees,
+      jobs,
+      shifts,
+      history,
+      targetDate,
+      pins
+    );
 
     setSchedule(groups);
 
@@ -156,90 +171,96 @@ setHistory(parsed);
   };
 
   const finalizeSchedule = async () => {
-  if (!schedule) {
-    toast.error("Generate a schedule first");
-    return;
-  }
+    if (!schedule) {
+      toast.error("Generate a schedule first");
+      return;
+    }
 
-  try {
-    setIsFinalizing(true);
+    try {
+      setIsFinalizing(true);
 
-    const targetDate = new Date();
-
-    const payload =
-      buildFinalizeSchedulePayload(
-        schedule,
-        employees,
-        pins,
-        targetDate
-      );
-
-    const response = await fetch(
-      "http://localhost:3000/api/assignments",
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify(payload),
+      if (!scheduleDate) {
+        toast.error("Schedule date is missing");
+        return;
       }
-    );
 
-    const data = await response.json();
+      const payload =
+        buildFinalizeSchedulePayload(
+          schedule,
+          employees,
+          pins,
+          scheduleDate
+        );
 
-    if (!response.ok) {
-      throw new Error(
-        data?.error ??
+      const response = await fetch(
+        "http://localhost:3000/api/assignments",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ??
           "Failed to finalize schedule"
+        );
+      }
+
+      toast.success(
+        `${data.created} assignments finalized`
       );
+
+      // Reload persisted history immediately so the
+      // next generated schedule uses the new assignments.
+      const historyResponse = await fetch(
+        "http://localhost:3000/api/assignment-history"
+      );
+
+      if (!historyResponse.ok) {
+        throw new Error(
+          "Schedule saved, but history could not be refreshed"
+        );
+      }
+
+      const rawHistory =
+        await historyResponse.json();
+
+      const parsedHistory =
+        parseAssignmentHistory(
+          rawHistory as ApiAssignmentHistory
+        );
+
+      setHistory(parsedHistory);
+
+      // The finalized preview is no longer editable.
+      setSchedule(null);
+      setDragItem(null);
+    } catch (error) {
+      console.error(
+        "Failed to finalize schedule:",
+        error
+      );
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to finalize schedule"
+      );
+    } finally {
+      setIsFinalizing(false);
     }
-
-    toast.success(
-      `${data.created} assignments finalized`
-    );
-
-    // Reload persisted history immediately so the
-    // next generated schedule uses the new assignments.
-    const historyResponse = await fetch(
-      "http://localhost:3000/api/assignment-history"
-    );
-
-    if (!historyResponse.ok) {
-      throw new Error(
-        "Schedule saved, but history could not be refreshed"
-      );
-    }
-
-    const rawHistory =
-      await historyResponse.json();
-
-    const parsedHistory =
-      parseAssignmentHistory(
-        rawHistory as ApiAssignmentHistory
-      );
-
-    setHistory(parsedHistory);
-
-    // The finalized preview is no longer editable.
     setSchedule(null);
+    setScheduleDate(null);
     setDragItem(null);
-  } catch (error) {
-    console.error(
-      "Failed to finalize schedule:",
-      error
-    );
-
-    toast.error(
-      error instanceof Error
-        ? error.message
-        : "Failed to finalize schedule"
-    );
-  } finally {
-    setIsFinalizing(false);
-  }
-};
+  };
 
   // ── Drag start ───────────────────────────────────────────────────────────
 
@@ -331,16 +352,17 @@ setHistory(parsed);
 
   const resetSchedule = () => {
     setSchedule(null);
+    setScheduleDate(null);
     setDragItem(null);
   };
-return {
-  schedule,
-  history,
-  isFinalizing,
-  generateSchedule,
-  finalizeSchedule,
-  handleDragStart,
-  handleDrop,
-  resetSchedule,
-};
+  return {
+    schedule,
+    history,
+    isFinalizing,
+    generateSchedule,
+    finalizeSchedule,
+    handleDragStart,
+    handleDrop,
+    resetSchedule,
+  };
 }

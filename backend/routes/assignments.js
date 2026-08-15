@@ -145,10 +145,18 @@ router.post("/", async (req, res) => {
   } catch (err) {
     console.error("Failed to finalize schedule:", err);
 
+
+
     if (err.code === "P2025") {
       return res.status(400).json({
         error:
           "Schedule contains an employee, job, or shift group that does not exist",
+      });
+    }
+    if (err.code === "P2002") {
+      return res.status(409).json({
+        error:
+          "This job and shift have already been finalized for this date",
       });
     }
 

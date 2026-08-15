@@ -66,6 +66,8 @@ model Assignment {
   members AssignmentMember[]
 
   createdAt DateTime @default(now())
+
+  @@unique([date, jobId, shiftGroupId])
 }
 
 model AssignmentMember {
