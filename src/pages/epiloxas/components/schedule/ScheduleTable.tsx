@@ -17,8 +17,11 @@ import {
 } from "@/components/ui/table";
 import type { Employee, Job, ScheduleGroup, ShiftGroup, PinnedAssignment } from "../../../../types";
 import {
-  scoreStyle, workloadStyle, detectConflicts,
-  buildScheduleCSV, downloadCSV, assignmentScore, getEmployeeByName
+  workloadStyle,
+  detectConflicts,
+  buildScheduleCSV,
+  downloadCSV,
+  getEmployeeByName,
 } from "../../utils";
 
 
@@ -62,7 +65,6 @@ export function ScheduleTable({
     personIdx: number,
     workload: number,
   ) => {
-    const aScore = assignmentScore(person, workload, employees);
     const emp = getEmployeeByName(person, employees);
     const hasNote = !!emp?.notes;
 
@@ -117,9 +119,9 @@ export function ScheduleTable({
 
           <span
             className="ml-auto inline-block rounded-full px-2 py-0.5 text-xs font-medium shrink-0"
-            style={scoreStyle(aScore)}
+            style={workloadStyle(workload)}
           >
-            {aScore}
+            {workload}
           </span>
         </div>
       </TableCell>
@@ -182,7 +184,7 @@ export function ScheduleTable({
             </span>
           ))}
           <span className="w-full opacity-70 mt-0.5">
-            Score badge = base score + workload &nbsp;·&nbsp;
+            Workload badge = job difficulty + shift difficulty &nbsp;·&nbsp;
             <span className="text-amber-600">■ amber = has note</span>
             &nbsp;·&nbsp;
             <span className="text-blue-600">■ blue = pre-assigned</span>

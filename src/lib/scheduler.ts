@@ -48,11 +48,19 @@ export function buildSchedule(
     }
   }
 
-  // Easy assignments first for now.
+  // Hardest assignments first.
   //
-  // Since this is still a greedy scheduler, slot ordering can influence
-  // the final result. We can benchmark easy-first vs hard-first later.
-  slots.sort((a, b) => a.workload - b.workload);
+  // This scheduler is greedy, so slot ordering matters.
+  //
+  // Our scheduling doctrine is:
+  //   hardest work → most rested available employee
+  //
+  // Processing difficult slots first prevents the best-rested people
+  // from being consumed by easy duties before harder work is assigned.
+  slots.sort(
+    (a, b) =>
+      b.workload - a.workload
+  );
 
   // ── 2. Build available employee pool ─────────────────────────────────────
 
@@ -60,9 +68,9 @@ export function buildSchedule(
   //
   // Their ranking depends on the particular job and target date:
   //
-  //   1. fewer repetitions of this job
-  //   2. lower current fatigue
-  //   3. lower historical workload
+  //   1. lower current fatigue
+//   2. lower recent workload
+//   3. fewer repetitions of this job
   const pool = [...employees];
 
   // Employees already assigned somewhere in this generated schedule.
@@ -112,85 +120,85 @@ export function buildSchedule(
     });
   }
 
-// ── 5. Create empty rows for every slot ─────────────────────────────────────
+  // ── 5. Create empty rows for every slot ─────────────────────────────────────
 
-for (const slot of slots) {
-  groupMap.get(slot.shift.id)!.rows.push({
-    job: slot.job,
-    shiftGroup: slot.shift,
-    people: [],
-    workload: slot.workload,
-  });
-}
-
-// ── 6. Place pinned employees first ─────────────────────────────────────────
-
-for (const employee of employees) {
-  const pin = pins[employee.id];
-
-  if (!pin) {
-    continue;
+  for (const slot of slots) {
+    groupMap.get(slot.shift.id)!.rows.push({
+      job: slot.job,
+      shiftGroup: slot.shift,
+      people: [],
+      workload: slot.workload,
+    });
   }
 
-  const group = groupMap.get(pin.shiftId);
+  // ── 6. Place pinned employees first ─────────────────────────────────────────
 
-  // Invalid / deleted shift.
-  if (!group) {
-    continue;
+  for (const employee of employees) {
+    const pin = pins[employee.id];
+
+    if (!pin) {
+      continue;
+    }
+
+    const group = groupMap.get(pin.shiftId);
+
+    // Invalid / deleted shift.
+    if (!group) {
+      continue;
+    }
+
+    const row = group.rows.find(
+      (candidate) =>
+        candidate.job.key === pin.jobKey
+    );
+
+    // Invalid / deleted job.
+    if (!row) {
+      continue;
+    }
+
+    // Do not overfill the slot.
+    if (row.people.length >= row.job.requiredPeople) {
+      continue;
+    }
+
+    row.people.push(fullName(employee));
+
+    // A pinned employee must not be selected again later.
+    assigned.add(employee.id);
   }
 
-  const row = group.rows.find(
-    (candidate) =>
-      candidate.job.key === pin.jobKey
+  // ── 7. Fill remaining positions using normal ranking ────────────────────────
+
+  for (const slot of slots) {
+    const group = groupMap.get(slot.shift.id)!;
+
+    const row = group.rows.find(
+      (candidate) =>
+        candidate.job.key === slot.job.key
+    )!;
+
+    const remaining =
+      row.job.requiredPeople -
+      row.people.length;
+
+    if (remaining <= 0) {
+      continue;
+    }
+
+    const picked = pickForSlot(
+      slot,
+      remaining
+    );
+
+    row.people.push(
+      ...picked.map(fullName)
+    );
+  }
+
+  // ── 8. Return groups in configured shift order ──────────────────────────────
+
+  return shifts.map(
+    (shift) => groupMap.get(shift.id)!
   );
-
-  // Invalid / deleted job.
-  if (!row) {
-    continue;
-  }
-
-  // Do not overfill the slot.
-  if (row.people.length >= row.job.requiredPeople) {
-    continue;
-  }
-
-  row.people.push(fullName(employee));
-
-  // A pinned employee must not be selected again later.
-  assigned.add(employee.id);
-}
-
-// ── 7. Fill remaining positions using normal ranking ────────────────────────
-
-for (const slot of slots) {
-  const group = groupMap.get(slot.shift.id)!;
-
-  const row = group.rows.find(
-    (candidate) =>
-      candidate.job.key === slot.job.key
-  )!;
-
-  const remaining =
-    row.job.requiredPeople -
-    row.people.length;
-
-  if (remaining <= 0) {
-    continue;
-  }
-
-  const picked = pickForSlot(
-    slot,
-    remaining
-  );
-
-  row.people.push(
-    ...picked.map(fullName)
-  );
-}
-
-// ── 8. Return groups in configured shift order ──────────────────────────────
-
-return shifts.map(
-  (shift) => groupMap.get(shift.id)!
-);
 }

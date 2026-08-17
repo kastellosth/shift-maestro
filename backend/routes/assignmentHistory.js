@@ -1,9 +1,7 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../lib/prisma");
 
 const router = express.Router();
-const prisma = new PrismaClient();
-
 /**
  * GET /api/assignment-history
  *
@@ -53,7 +51,9 @@ router.get("/", async (req, res) => {
         assignmentId: member.assignment.id,
         date: member.assignment.date,
         job: member.assignment.job,
-        shiftGroup: member.assignment.shiftGroup,
+        shiftGroup:
+          member.assignment.shiftGroup,
+        pinned: member.pinned,
       });
     }
 

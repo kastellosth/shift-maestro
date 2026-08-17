@@ -1,203 +1,334 @@
-import { describe, expect, it } from "vitest";
-import { rankEmployeesForJob } from "./ranking";
+import {
+  describe,
+  expect,
+  it,
+} from "vitest";
+
+import {
+  rankEmployeesForJob,
+  type EmployeeSchedulingContext,
+} from "./ranking";
+
+import type {
+  Employee,
+} from "../../types/employee";
+
+import type {
+  Job,
+  ShiftGroup,
+} from "../../types";
+
+import type {
+  HistoricalAssignment,
+} from "./fatigue";
+
+// ── Fixtures ──────────────────────────────────────────────────────────────────
+
+function employee(
+  id: string,
+  name: string
+): Employee {
+  return {
+    id,
+    name,
+    surname: "TEST",
+    company: 2,
+
+    // Transitional DB field.
+    // Ranking no longer uses this.
+    score: 0,
+
+    esso: null,
+    essoEntryDate: null,
+    iClass: null,
+    armed: false,
+    notes: null,
+  };
+}
+
+const guardJob: Job = {
+  id: "guard",
+  key: "guard",
+  label: "Guard",
+  difficulty: 8,
+  requiredPeople: 1,
+  
+};
+
+const nightShift: ShiftGroup = {
+  id: "night",
+  name: "Night",
+  label: "Night",
+  difficulty: 4,
+ 
+};
+
+const targetDate =
+  new Date(
+    "2026-08-09T00:00:00.000Z"
+  );
+
+function assignment(
+  date: string,
+  job: Job = guardJob,
+  shift: ShiftGroup = nightShift
+): HistoricalAssignment {
+  return {
+    date: new Date(date),
+    job,
+    shiftGroup: shift,
+  };
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("rankEmployeesForJob", () => {
-  it("prefers the less fatigued employee when job counts are equal", () => {
-    const guardJob = {
-      id: "guard",
-      key: "guard",
-      label: "Guard",
-      difficulty: 8,
-      requiredPeople: 2,
-    };
+  it("prefers the less fatigued employee", () => {
+    const employees:
+      EmployeeSchedulingContext[] = [
+        {
+          employee: employee(
+            "john",
+            "John"
+          ),
 
-    const nightShift = {
-      id: "night",
-      name: "Night",
-      label: "Night",
-      difficulty: 4,
-    };
+          history: [
+            assignment(
+              "2026-08-08T00:00:00.000Z"
+            ),
+          ],
+        },
 
-    const employees = [
-      {
-      employee: {
-  id: "john",
-  name: "John",
-  surname: "Smith",
-  company: 2,
-  score: 10,
+        {
+          employee: employee(
+            "maria",
+            "Maria"
+          ),
 
-  esso: null,
-  essoEntryDate: null,
-  iClass: null,
-  armed: false,
-  notes: null,
-},
-        history: [
-          {
-            date: new Date("2026-08-08"),
-            job: guardJob,
-            shiftGroup: nightShift,
-          },
-        ],
-      },
-      {
-        employee: {
-  id: "maria",
-  name: "Maria",
-  surname: "Jones",
-  company: 2,
-  score: 10,
+          history: [
+            assignment(
+              "2026-08-01T00:00:00.000Z"
+            ),
+          ],
+        },
+      ];
 
-  esso: null,
-  essoEntryDate: null,
-  iClass: null,
-  armed: false,
-  notes: null,
-},
-        history: [
-          {
-            date: new Date("2026-08-01"),
-            job: guardJob,
-            shiftGroup: nightShift,
-          },
-        ],
-      },
-    ];
+    const ranked =
+      rankEmployeesForJob(
+        employees,
+        guardJob,
+        targetDate
+      );
 
-    const ranked = rankEmployeesForJob(
-      employees,
-      guardJob,
-      new Date("2026-08-09")
-    );
-
-    expect(ranked[0].employee.id).toBe("maria");
+    expect(
+      ranked[0].employee.id
+    ).toBe("maria");
   });
-});
 
-it("prefers the employee who has done the job fewer times", () => {
-  const guardJob = {
-    id: "guard",
-    key: "guard",
-    label: "Guard",
-    difficulty: 8,
-    requiredPeople: 2,
-  };
+  it("prefers lower recent workload when fatigue is equal", () => {
+    const heavyJob: Job = {
+      id: "heavy",
+      key: "heavy",
+      label: "Heavy Duty",
+      difficulty: 6,
+      requiredPeople: 1,
+      
+    };
 
-  const nightShift = {
-    id: "night",
-    name: "Night",
-    label: "Night",
-    difficulty: 4,
-  };
+    const lightJob: Job = {
+      id: "light",
+      key: "light",
+      label: "Light Duty",
+      difficulty: 2,
+      requiredPeople: 1,
+     
+    };
 
-  const employees = [
-    {
-      employee: {
-        id: "john",
-        name: "John",
-        surname: "Smith",
-        company: 2,
-        score: 5,
-        esso: null,
-        essoEntryDate: null,
-        iClass: null,
-        armed: false,
-        notes: null,
-      },
-      history: [
+    const dayShift: ShiftGroup = {
+      id: "day",
+      name: "Day",
+      label: "Day",
+      difficulty: 1,
+     
+    };
+
+    const employees:
+      EmployeeSchedulingContext[] = [
         {
-          date: new Date("2026-08-01"),
-          job: guardJob,
-          shiftGroup: nightShift,
+          employee: employee(
+            "john",
+            "John"
+          ),
+
+          history: [
+            // Five days ago:
+            // fatigue = 0,
+            // but still inside 7-day workload window.
+            assignment(
+              "2026-08-04T00:00:00.000Z",
+              heavyJob,
+              dayShift
+            ),
+          ],
         },
+
         {
-          date: new Date("2026-08-02"),
-          job: guardJob,
-          shiftGroup: nightShift,
+          employee: employee(
+            "maria",
+            "Maria"
+          ),
+
+          history: [
+            assignment(
+              "2026-08-04T00:00:00.000Z",
+              lightJob,
+              dayShift
+            ),
+          ],
         },
-      ],
-    },
-    {
-      employee: {
-        id: "maria",
-        name: "Maria",
-        surname: "Jones",
-        company: 2,
-        score: 50,
-        esso: null,
-        essoEntryDate: null,
-        iClass: null,
-        armed: false,
-        notes: null,
-      },
-      history: [],
-    },
-  ];
+      ];
 
-  const ranked = rankEmployeesForJob(
-    employees,
-    guardJob,
-    new Date("2026-08-09")
-  );
+    const ranked =
+      rankEmployeesForJob(
+        employees,
+        guardJob,
+        targetDate
+      );
 
-  expect(ranked[0].employee.id).toBe("maria");
-});
+    expect(
+      ranked[0].employee.id
+    ).toBe("maria");
+  });
 
-it("prefers lower historical workload when repetition and fatigue are equal", () => {
-  const officeJob = {
-    id: "office",
-    key: "office",
-    label: "Office",
-    difficulty: 2,
-    requiredPeople: 1,
-  };
+  it("prefers fewer repetitions when fatigue and recent workload are equal", () => {
+    const employees:
+      EmployeeSchedulingContext[] = [
+        {
+          employee: employee(
+            "john",
+            "John"
+          ),
 
-  const dayShift = {
-    id: "day",
-    name: "Day",
-    label: "Day",
-    difficulty: 1,
-  };
+          history: [
+            assignment(
+              "2026-07-01T00:00:00.000Z"
+            ),
+            assignment(
+              "2026-07-02T00:00:00.000Z"
+            ),
+          ],
+        },
 
-  const employees = [
-    {
-      employee: {
-        id: "john",
-        name: "John",
-        surname: "Smith",
-        company: 2,
-        score: 80,
-        esso: null,
-        essoEntryDate: null,
-        iClass: null,
-        armed: false,
-        notes: null,
-      },
-      history: [],
-    },
-    {
-      employee: {
-        id: "maria",
-        name: "Maria",
-        surname: "Jones",
-        company: 2,
-        score: 20,
-        esso: null,
-        essoEntryDate: null,
-        iClass: null,
-        armed: false,
-        notes: null,
-      },
-      history: [],
-    },
-  ];
+        {
+          employee: employee(
+            "maria",
+            "Maria"
+          ),
 
-  const ranked = rankEmployeesForJob(
-    employees,
-    officeJob,
-    new Date("2026-08-09")
-  );
+          history: [],
+        },
+      ];
 
-  expect(ranked[0].employee.id).toBe("maria");
+    const ranked =
+      rankEmployeesForJob(
+        employees,
+        guardJob,
+        targetDate
+      );
+
+    expect(
+      ranked[0].employee.id
+    ).toBe("maria");
+  });
+
+  it("prefers a rested employee even when they have done the job more often", () => {
+    const heavyOtherJob: Job = {
+      id: "heavy-other",
+      key: "heavy-other",
+      label: "Heavy Other Duty",
+      difficulty: 10,
+      requiredPeople: 1,
+      
+    };
+
+    const employees:
+      EmployeeSchedulingContext[] = [
+        {
+          employee: employee(
+            "tired",
+            "Tired"
+          ),
+
+          history: [
+            assignment(
+              "2026-08-08T00:00:00.000Z",
+              heavyOtherJob,
+              nightShift
+            ),
+          ],
+        },
+
+        {
+          employee: employee(
+            "rested",
+            "Rested"
+          ),
+
+          history: [
+            assignment(
+              "2026-07-01T00:00:00.000Z"
+            ),
+            assignment(
+              "2026-07-02T00:00:00.000Z"
+            ),
+            assignment(
+              "2026-07-03T00:00:00.000Z"
+            ),
+          ],
+        },
+      ];
+
+    const ranked =
+      rankEmployeesForJob(
+        employees,
+        guardJob,
+        targetDate
+      );
+
+    expect(
+      ranked[0].employee.id
+    ).toBe("rested");
+  });
+
+  it("uses employee id as the deterministic final tie-break", () => {
+    const employees:
+      EmployeeSchedulingContext[] = [
+        {
+          employee: employee(
+            "zulu",
+            "Zulu"
+          ),
+          history: [],
+        },
+
+        {
+          employee: employee(
+            "alpha",
+            "Alpha"
+          ),
+          history: [],
+        },
+      ];
+
+    const ranked =
+      rankEmployeesForJob(
+        employees,
+        guardJob,
+        targetDate
+      );
+
+    expect(
+      ranked[0].employee.id
+    ).toBe("alpha");
+  });
 });

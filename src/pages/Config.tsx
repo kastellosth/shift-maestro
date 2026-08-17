@@ -1,17 +1,10 @@
 // ─── Config.tsx ───────────────────────────────────────────────────────────────
 //
-// Settings page for the Επιλοχίας module.
+// Settings page for the scheduling catalogue.
 //
-// Sections:
-//   1. Shift Groups  — add / delete / edit name, label, difficulty
-//   2. Jobs          — add / delete / edit label, difficulty, requiredPeople
-//   3. General       — organisation name (saved to localStorage)
-//
-// A sticky footer always shows the live total of people required per schedule
-// generation: shifts × Σ(job.requiredPeople).
-//
-// All changes are written to localStorage via saveConfig() so Epiloxas.tsx
-// picks them up on the next mount (it calls loadConfig() in useState initialiser).
+// Jobs and shifts are loaded from and saved to the backend.
+// Removed catalogue entries are deactivated server-side so
+// historical Assignment relations remain intact.
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { Job, ShiftGroup } from "../types";
+import { API_BASE } from "../lib/api";
 import {
   DEFAULT_JOBS,
   DEFAULT_SHIFTS,
@@ -95,7 +89,7 @@ const Config = () => {
     const loadConfigFromBackend = async () => {
       try {
         const response = await fetch(
-          "http://localhost:3000/api/config"
+          `${API_BASE}/config`
         );
 
         if (!response.ok) {
@@ -128,7 +122,7 @@ const Config = () => {
   const handleSave = async () => {
     try {
       const response = await fetch(
-        "http://localhost:3000/api/config",
+        `${API_BASE}/config`,
         {
           method: "PUT",
           headers: {

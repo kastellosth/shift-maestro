@@ -20,7 +20,7 @@ node_modules
 dist
 dist-ssr
 *.local
-
+*.db.backup-*
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-
+import { API_BASE } from "../../../lib/api";
 import {
   buildFinalizeSchedulePayload,
 } from "../../../lib/scheduling/finalize";
@@ -84,7 +84,7 @@ export function useScheduler(
     const loadHistory = async () => {
       try {
         const response = await fetch(
-          "http://localhost:3000/api/assignment-history"
+          `${API_BASE}/assignment-history`
         );
 
         if (!response.ok) {
@@ -214,7 +214,7 @@ export function useScheduler(
         );
 
       const response = await fetch(
-        "http://localhost:3000/api/assignments",
+        `${API_BASE}/assignments`,
         {
           method: "POST",
 
@@ -242,7 +242,7 @@ export function useScheduler(
       // Reload persisted history immediately so the
       // next generated schedule uses the new assignments.
       const historyResponse = await fetch(
-        "http://localhost:3000/api/assignment-history"
+        `${API_BASE}/assignment-history`
       );
 
       if (!historyResponse.ok) {
@@ -263,7 +263,9 @@ export function useScheduler(
 
       // The finalized preview is no longer editable.
       setSchedule(null);
+      setScheduleDate(null);
       setDragItem(null);
+      
     } catch (error) {
       console.error(
         "Failed to finalize schedule:",
@@ -278,9 +280,7 @@ export function useScheduler(
     } finally {
       setIsFinalizing(false);
     }
-    setSchedule(null);
-    setScheduleDate(null);
-    setDragItem(null);
+    
   };
 
   // ── Drag start ───────────────────────────────────────────────────────────

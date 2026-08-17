@@ -33,7 +33,21 @@ router.post("/", async (req, res) => {
     }
 
     const { date, assignments } = result.data;
-    const assignmentDate = new Date(date);
+    function normalizeScheduleDate(value) {
+      const date = new Date(value);
+
+      date.setUTCHours(
+        0,
+        0,
+        0,
+        0
+      );
+
+      return date;
+    }
+
+    const assignmentDate =
+      normalizeScheduleDate(date);
 
     // ── 2. No employee may appear twice ─────────────────
     const employeeIds = assignments.flatMap((assignment) =>
@@ -43,6 +57,20 @@ router.post("/", async (req, res) => {
     if (new Set(employeeIds).size !== employeeIds.length) {
       return res.status(400).json({
         error: "An employee cannot appear more than once in a schedule",
+      });
+    }
+
+    const existingAssignment =
+      await prisma.assignment.findFirst({
+        where: {
+          date: assignmentDate,
+        },
+      });
+
+    if (existingAssignment) {
+      return res.status(409).json({
+        error:
+          "A schedule has already been finalized for this date",
       });
     }
 

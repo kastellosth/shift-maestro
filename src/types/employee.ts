@@ -96,7 +96,6 @@ export interface EmployeeForm {
   surname:       string;
   name:          string;
   company:       string;
-  score:         string;
   esso:          EssoBatch | "";
   essoEntryDate: string;
   iClass:        IClass | "";
@@ -108,7 +107,7 @@ export const DEFAULT_FORM: EmployeeForm = {
   surname:       "",
   name:          "",
   company:       "1",
-  score:         "",
+ 
   esso:          "",
   essoEntryDate: "",
   iClass:        "",

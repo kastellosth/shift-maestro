@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Employee } from "../../../../types";
 import { DEMO_EMPLOYEES } from "../../constants";
-import { randomScore } from "../../utils";
+
 
 interface LoadEmployeesCardProps {
   employeeCount: number;
@@ -41,7 +41,7 @@ export function LoadEmployeesCard({ employeeCount, onLoad, onOpenDbModal }: Load
     surname: p[0] || "",
     name: p[1] || "",
     company: parseInt(p[2] ?? "1", 10) || 1,
-    score: parseInt(p[3] ?? "0", 10) || randomScore(),
+    score: 0,
 
     esso: null,
     essoEntryDate: null,

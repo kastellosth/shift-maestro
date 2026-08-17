@@ -5,7 +5,6 @@
 //   it. Extracting it means:
 //     • The page file doesn't need to know about ChevronDown, Search, or any
 //       of the company-picker logic
-//     • If you later add a third step (e.g. "filter by score range") you edit
 //       only this file
 //     • The component is "dumb" about data fetching: it receives handlers from
 //       useDbLoader and just calls them
@@ -13,7 +12,6 @@
 import { X, Users, Search, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Employee } from "../../../../types";
-import { scoreStyle } from "../../utils";
 import type { DBLoaderStep } from "../../hooks/useDbLoader";
 
 interface DbLoaderModalProps {
@@ -208,12 +206,7 @@ export function DbLoaderModal(props: DbLoaderModalProps) {
                             />
                             <span className="text-sm font-medium">{emp.surname}</span>
                             <span className="text-sm text-muted-foreground">{emp.name}</span>
-                            <span
-                              className="ml-auto text-xs rounded-full px-1.5 py-0.5 font-medium shrink-0"
-                              style={scoreStyle(emp.score)}
-                            >
-                              {emp.score}
-                            </span>
+                            
                           </label>
                         ))}
                       </div>

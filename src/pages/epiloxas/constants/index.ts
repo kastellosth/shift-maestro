@@ -28,29 +28,10 @@ export const DEFAULT_SHIFTS: ShiftGroup[] = [
 ];
 
 // ── Demo employee roster (Greek names, realistic companies) ───────────────────
-//
-// NOTE: randomScore() is called once at module load time, not on every render.
-// This is intentional – demo scores are stable across re-renders.
-const r = () => Math.floor(Math.random() * 51) + 50;
-function makeEmployee(
-  data: Pick<
-    Employee,
-    "id" | "name" | "surname" | "company" | "score"
-  >
-): Employee {
-  return {
-    ...data,
-    esso: null,
-    essoEntryDate: null,
-    iClass: null,
-    armed: false,
-    notes: null,
-  };
-}
 
 export const DEMO_EMPLOYEES: Employee[] = [
   {
-    id: "1", name: "Γιώργος", surname: "Παπαδόπουλος", company: 1, score: r(),
+    id: "1", name: "Γιώργος", surname: "Παπαδόπουλος", company: 1, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -58,7 +39,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "2", name: "Αλέξανδρος", surname: "Κωνσταντίνου", company: 2, score: r(),
+    id: "2", name: "Αλέξανδρος", surname: "Κωνσταντίνου", company: 2, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -66,7 +47,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "3", name: "Δημήτριος", surname: "Νικολάου", company: 1, score: r(),
+    id: "3", name: "Δημήτριος", surname: "Νικολάου", company: 1, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -74,7 +55,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "4", name: "Κωνσταντίνος", surname: "Αθανασίου", company: 3, score: r(),
+    id: "4", name: "Κωνσταντίνος", surname: "Αθανασίου", company: 3, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -82,7 +63,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "5", name: "Ευάγγελος", surname: "Δημητρίου", company: 2, score: r(),
+    id: "5", name: "Ευάγγελος", surname: "Δημητρίου", company: 2, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -90,7 +71,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "6", name: "Μιχάλης", surname: "Γεωργίου", company: 1, score: r(),
+    id: "6", name: "Μιχάλης", surname: "Γεωργίου", company: 1, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -98,7 +79,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "7", name: "Παναγιώτης", surname: "Ιωάννου", company: 3, score: r(),
+    id: "7", name: "Παναγιώτης", surname: "Ιωάννου", company: 3, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -106,7 +87,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "8", name: "Σταύρος", surname: "Βασιλείου", company: 2, score: r(),
+    id: "8", name: "Σταύρος", surname: "Βασιλείου", company: 2, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -114,7 +95,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "9", name: "Νίκος", surname: "Χριστοδούλου", company: 1, score: r(),
+    id: "9", name: "Νίκος", surname: "Χριστοδούλου", company: 1, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -122,7 +103,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "10", name: "Θανάσης", surname: "Μιχαηλίδης", company: 3, score: r(),
+    id: "10", name: "Θανάσης", surname: "Μιχαηλίδης", company: 3, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -130,7 +111,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "11", name: "Λάμπρος", surname: "Παναγιώτου", company: 2, score: r(),
+    id: "11", name: "Λάμπρος", surname: "Παναγιώτου", company: 2, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -138,7 +119,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "12", name: "Φώτης", surname: "Σωτηρίου", company: 1, score: r(),
+    id: "12", name: "Φώτης", surname: "Σωτηρίου", company: 1, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -146,7 +127,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "13", name: "Ρένα", surname: "Αλεξίου", company: 3, score: r(),
+    id: "13", name: "Ρένα", surname: "Αλεξίου", company: 3, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -154,7 +135,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "14", name: "Ιωάννης", surname: "Μαρκόπουλος", company: 2, score: r(),
+    id: "14", name: "Ιωάννης", surname: "Μαρκόπουλος", company: 2, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -162,7 +143,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "15", name: "Βασίλης", surname: "Καραγιάννης", company: 1, score: r(),
+    id: "15", name: "Βασίλης", surname: "Καραγιάννης", company: 1, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -170,7 +151,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "16", name: "Χρήστος", surname: "Πετρίδης", company: 3, score: r(),
+    id: "16", name: "Χρήστος", surname: "Πετρίδης", company: 3, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -178,7 +159,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "17", name: "Ωκεανός", surname: "Ανδρέου", company: 2, score: r(),
+    id: "17", name: "Ωκεανός", surname: "Ανδρέου", company: 2, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -186,7 +167,7 @@ export const DEMO_EMPLOYEES: Employee[] = [
     notes: ""
   },
   {
-    id: "18", name: "Ηλίας", surname: "Λαζαρίδης", company: 1, score: r(),
+    id: "18", name: "Ηλίας", surname: "Λαζαρίδης", company: 1, score: 0,
     esso: "Α",
     essoEntryDate: "",
     iClass: "I1",
@@ -200,7 +181,6 @@ export const DEMO_EMPLOYEES: Employee[] = [
 // Centralising the base URL here means you change it in one place when you
 // move from localhost to staging/production. In a real project this would
 // come from an environment variable (import.meta.env.VITE_API_URL).
-export const API_BASE = "http://localhost:3000/api";
 
 // ── Config persistence ────────────────────────────────────────────────────────
 //

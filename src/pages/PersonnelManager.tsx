@@ -3,56 +3,82 @@
 // Sits at src/ root (same level as the original).
 // All imports resolve from that level.
 
-import { useNavigate }    from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, RefreshCw, Save, Download, Upload, Trash2,
+  ArrowLeft,
+  RefreshCw,
+  Save,
+  Download,
+  Upload,
+  Trash2,
+  History,
 } from "lucide-react";
-import { Button }    from "@/components/ui/button";
-import { Card }      from "@/components/ui/card";
-import { Badge }     from "@/components/ui/badge";
-import { Input }     from "@/components/ui/input";
-import { Label }     from "@/components/ui/label";
+import { API_BASE } from "../lib/api";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useMemo } from "react";
+import {
+  useMemo,
+  useState,
+} from "react";
+import {
+  EmployeeHistoryModal,
+  type EmployeeHistoryEntry,
+} from "@/pages/personnel/EmployeeHistoryModal";
+
+import type {
+  EmployeeViewModel,
+} from "@/types/employee";
 import { FilterBar } from "@/pages/personnel/FilterBar";
 import { DeleteReasonModal } from "@/pages/personnel/DeleteReasonModal";
 
-import { useEmployeeStore, selectDisplayed } from "@/stores/employee.store";
-import { daysInService }     from "@/types/employee";
+import { useEmployeeStore } from "@/stores/employee.store";
+import { daysInService } from "@/types/employee";
 import type { EssoBatch, IClass } from "@/types/employee";
 
 const ESSO_OPTIONS: EssoBatch[] = ["Α", "Β", "Γ", "Δ", "Ε", "ΣΤ"];
-const ICLASS_OPTIONS: IClass[]  = ["I1", "I2", "I3", "I4", "I5"];
+const ICLASS_OPTIONS: IClass[] = ["I1", "I2", "I3", "I4", "I5"];
 
 const PersonnelManager = () => {
 
-  
+  const [historyEmployee, setHistoryEmployee] =
+    useState<EmployeeViewModel | null>(null);
+
+  const [employeeHistory, setEmployeeHistory] =
+    useState<EmployeeHistoryEntry[]>([]);
+
+  const [historyLoading, setHistoryLoading] =
+    useState(false);
   const navigate = useNavigate();
 
-  const employees           = useEmployeeStore((s) => s.employees);
-  const loading             = useEmployeeStore((s) => s.loading);
-  const saving              = useEmployeeStore((s) => s.saving);
-  const search              = useEmployeeStore((s) => s.search);
-  const setSearch           = useEmployeeStore((s) => s.setSearch);
-  const selected            = useEmployeeStore((s) => s.selected);
-  const form                = useEmployeeStore((s) => s.form);
-  const setForm             = useEmployeeStore((s) => s.setForm);
-  const formError           = useEmployeeStore((s) => s.formError);
-  const pendingDelete       = useEmployeeStore((s) => s.pendingDelete);
+  const employees = useEmployeeStore((s) => s.employees);
+  const loading = useEmployeeStore((s) => s.loading);
+  const saving = useEmployeeStore((s) => s.saving);
+  const search = useEmployeeStore((s) => s.search);
+  const setSearch = useEmployeeStore((s) => s.setSearch);
+  const selected = useEmployeeStore((s) => s.selected);
+  const form = useEmployeeStore((s) => s.form);
+  const setForm = useEmployeeStore((s) => s.setForm);
+  const formError = useEmployeeStore((s) => s.formError);
+  const pendingDelete = useEmployeeStore((s) => s.pendingDelete);
 
-  const loadFromDB            = useEmployeeStore((s) => s.loadFromDB);
-  const addEmployee           = useEmployeeStore((s) => s.addEmployee);
-  const updateEmployee        = useEmployeeStore((s) => s.updateEmployee);
-  const saveAll               = useEmployeeStore((s) => s.saveAll);
-  const toggleSelect          = useEmployeeStore((s) => s.toggleSelect);
-  const toggleAll             = useEmployeeStore((s) => s.toggleAll);
-  const requestDelete             = useEmployeeStore((s) => s.requestDelete);
+  const loadFromDB = useEmployeeStore((s) => s.loadFromDB);
+  const addEmployee = useEmployeeStore((s) => s.addEmployee);
+  const updateEmployee = useEmployeeStore((s) => s.updateEmployee);
+  const saveAll = useEmployeeStore((s) => s.saveAll);
+  const toggleSelect = useEmployeeStore((s) => s.toggleSelect);
+  const toggleAll = useEmployeeStore((s) => s.toggleAll);
+  const requestDelete = useEmployeeStore((s) => s.requestDelete);
   const requestDeleteSelected = useEmployeeStore((s) => s.requestDeleteSelected);
-  const confirmDelete         = useEmployeeStore((s) => s.confirmDelete);
-  const cancelDelete          = useEmployeeStore((s) => s.cancelDelete);
-    const filters = useEmployeeStore((s) => s.activeFilters);
+  const confirmDelete = useEmployeeStore((s) => s.confirmDelete);
+  const cancelDelete = useEmployeeStore((s) => s.cancelDelete);
+  const filters = useEmployeeStore((s) => s.activeFilters);
 
   const unsavedCount = employees.filter((e) => e.status !== "saved").length;
+
 
 
 
@@ -97,14 +123,58 @@ const PersonnelManager = () => {
     return e ? `${e.surname} ${e.name}`.trim() : id;
   });
 
+  const handleViewHistory = async (
+    employee: EmployeeViewModel
+  ) => {
+    setHistoryEmployee(employee);
+    setEmployeeHistory([]);
+    setHistoryLoading(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/assignment-history`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `History request failed: ${response.status}`
+        );
+      }
+
+      const raw = await response.json();
+
+      const employeeEntries =
+        raw[employee.id] ?? [];
+
+      const parsed: EmployeeHistoryEntry[] =
+        employeeEntries.map(
+          (entry: any) => ({
+            ...entry,
+            date: new Date(entry.date),
+          })
+        );
+
+      setEmployeeHistory(parsed);
+    } catch (error) {
+      console.error(
+        "Failed to load employee history:",
+        error
+      );
+
+      setEmployeeHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   const handleExport = () => {
     const blob = new Blob([JSON.stringify(employees, null, 2)], { type: "application/json" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url; a.download = "employees.json"; a.click();
     URL.revokeObjectURL(url);
   };
-  
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -116,6 +186,16 @@ const PersonnelManager = () => {
           names={pendingNames}
           onConfirm={confirmDelete}
           onCancel={cancelDelete}
+        />
+      )}
+      {historyEmployee && !historyLoading && (
+        <EmployeeHistoryModal
+          employee={historyEmployee}
+          history={employeeHistory}
+          onClose={() => {
+            setHistoryEmployee(null);
+            setEmployeeHistory([]);
+          }}
         />
       )}
 
@@ -142,7 +222,9 @@ const PersonnelManager = () => {
             </Button>
             <Button size="sm" onClick={saveAll} disabled={saving || unsavedCount === 0}>
               <Save className={`mr-2 h-4 w-4 ${saving ? "animate-spin" : ""}`} />
-              Save
+              {saving
+                ? "Saving..."
+                : `Save changes (${unsavedCount})`}
             </Button>
           </div>
         </div>
@@ -181,11 +263,7 @@ const PersonnelManager = () => {
                 <Input type="number" min={1} value={form.company}
                   onChange={(e) => setForm({ ...form, company: e.target.value })} className="h-8 text-sm" />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Score</Label>
-                <Input type="number" value={form.score} placeholder="auto"
-                  onChange={(e) => setForm({ ...form, score: e.target.value })} className="h-8 text-sm" />
-              </div>
+
             </div>
 
             <Separator />
@@ -217,14 +295,29 @@ const PersonnelManager = () => {
               <div className="space-y-1">
                 <Label className="text-xs">Armed</Label>
                 <button onClick={() => setForm({ ...form, armed: !form.armed })}
-                  className={`h-8 w-full rounded-md border text-sm font-medium transition-colors ${
-                    form.armed
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/50"
-                  }`}>
+                  className={`h-8 w-full rounded-md border text-sm font-medium transition-colors ${form.armed
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/50"
+                    }`}>
                   {form.armed ? "Yes — Armed" : "No — Unarmed"}
                 </button>
               </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Notes</Label>
+                <Input
+                  value={form.notes}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      notes: e.target.value,
+                    })
+                  }
+                  placeholder="Optional personnel note"
+                  className="h-8 text-sm"
+                />
+              </div>
+
             </div>
 
             {formError && <p className="text-xs text-destructive">{formError}</p>}
@@ -264,7 +357,7 @@ const PersonnelManager = () => {
                         onChange={() => toggleAll(displayed)}
                         className="h-3.5 w-3.5 accent-primary" />
                     </th>
-                    {["Surname","Name","Co.","Score","ΕΣΣΟ","Days","I-class","Armed","Status",""].map((h) => (
+                    {["Surname", "Name", "Co.", "ΕΣΣΟ", "Entry date", "Days", "I-class", "Armed", "Notes", "Status", ""].map((h) => (
                       <th key={h} className="px-3 py-2 text-left font-medium text-xs text-muted-foreground">{h}</th>
                     ))}
                   </tr>
@@ -273,9 +366,9 @@ const PersonnelManager = () => {
                   {displayed.map((emp) => {
                     const days = emp.essoEntryDate ? daysInService(emp.essoEntryDate) : null;
                     const statusColor =
-                      emp.status === "new"   ? "text-blue-600 bg-blue-50 dark:bg-blue-950/30" :
-                      emp.status === "dirty" ? "text-amber-600 bg-amber-50 dark:bg-amber-950/30" :
-                      "text-green-600 bg-green-50 dark:bg-green-950/30";
+                      emp.status === "new" ? "text-blue-600 bg-blue-50 dark:bg-blue-950/30" :
+                        emp.status === "dirty" ? "text-amber-600 bg-amber-50 dark:bg-amber-950/30" :
+                          "text-green-600 bg-green-50 dark:bg-green-950/30";
 
                     return (
                       <tr key={emp.id}
@@ -304,11 +397,7 @@ const PersonnelManager = () => {
                             className="bg-transparent w-12 focus:outline-none focus:ring-1 focus:ring-ring rounded px-1" />
                         </td>
 
-                        <td className="px-3 py-2">
-                          <input type="number" value={emp.score}
-                            onChange={(e) => updateEmployee(emp.id, "score", parseInt(e.target.value) || 0)}
-                            className="bg-transparent w-14 focus:outline-none focus:ring-1 focus:ring-ring rounded px-1" />
-                        </td>
+
 
                         <td className="px-3 py-2">
                           <select value={emp.esso ?? ""}
@@ -317,6 +406,21 @@ const PersonnelManager = () => {
                             <option value="">—</option>
                             {ESSO_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
                           </select>
+                        </td>
+
+                        <td className="px-3 py-2">
+                          <input
+                            type="date"
+                            value={emp.essoEntryDate ?? ""}
+                            onChange={(e) =>
+                              updateEmployee(
+                                emp.id,
+                                "essoEntryDate",
+                                e.target.value || null
+                              )
+                            }
+                            className="bg-transparent text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded px-1"
+                          />
                         </td>
 
                         <td className="px-3 py-2 tabular-nums text-xs">
@@ -337,13 +441,27 @@ const PersonnelManager = () => {
                         <td className="px-3 py-2 text-center">
                           <button
                             onClick={() => updateEmployee(emp.id, "armed", !emp.armed)}
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
-                              emp.armed
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : "bg-muted text-muted-foreground"
-                            }`}>
+                            className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${emp.armed
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-muted text-muted-foreground"
+                              }`}>
                             {emp.armed ? "Yes" : "No"}
                           </button>
+                        </td>
+
+                        <td className="px-3 py-2">
+                          <input
+                            value={emp.notes ?? ""}
+                            onChange={(e) =>
+                              updateEmployee(
+                                emp.id,
+                                "notes",
+                                e.target.value || null
+                              )
+                            }
+                            placeholder="—"
+                            className="bg-transparent min-w-40 w-full focus:outline-none focus:ring-1 focus:ring-ring rounded px-1"
+                          />
                         </td>
 
                         <td className="px-3 py-2">
@@ -353,10 +471,23 @@ const PersonnelManager = () => {
                         </td>
 
                         <td className="px-3 py-2">
-                          <button onClick={() => requestDelete(emp.id)}
-                            className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleViewHistory(emp)}
+                              className="rounded p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                              title="View assignment history"
+                            >
+                              <History className="h-3.5 w-3.5" />
+                            </button>
+
+                            <button
+                              onClick={() => requestDelete(emp.id)}
+                              className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              title="Remove employee"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

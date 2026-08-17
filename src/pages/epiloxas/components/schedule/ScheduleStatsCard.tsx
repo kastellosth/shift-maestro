@@ -16,7 +16,7 @@ import {
   buildCompanyBurden,
   buildPersonBurden,
 } from "../../utils/scheduleStats";
-import { scoreStyle, workloadStyle } from "../../utils";
+import { workloadStyle } from "../../utils";
 
 interface ScheduleStatsCardProps {
   schedule: ScheduleGroup[];
@@ -28,16 +28,16 @@ interface ScheduleStatsCardProps {
 // ── Spider chart (pure SVG radar) ─────────────────────────────────────────────
 
 function SpiderChart({ schedule, employees }: { schedule: ScheduleGroup[]; employees: Employee[] }) {
-  const data   = buildSpiderData(schedule, employees);
-  const n      = data.length;
+  const data = buildSpiderData(schedule, employees);
+  const n = data.length;
   if (n < 2) return <p className="text-xs text-muted-foreground">Need ≥2 companies</p>;
 
   const cx = 140; const cy = 140; const r = 100;
   const levels = 4;
 
   // Polygon point helpers
-  const angle  = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
-  const pt     = (i: number, radius: number) => ({
+  const angle = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
+  const pt = (i: number, radius: number) => ({
     x: cx + radius * Math.cos(angle(i)),
     y: cy + radius * Math.sin(angle(i)),
   });
@@ -46,7 +46,7 @@ function SpiderChart({ schedule, employees }: { schedule: ScheduleGroup[]; emplo
 
   // Data polygon
   const dataPoints = data.map((d, i) => pt(i, (d.count / maxVal) * r));
-  const dataPath   = dataPoints.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ") + "Z";
+  const dataPath = dataPoints.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ") + "Z";
 
   // Grid polygons
   const gridPaths = Array.from({ length: levels }, (_, li) => {
@@ -106,12 +106,12 @@ export function ScheduleStatsCard({ schedule, employees, jobs, shifts }: Schedul
   const [tab, setTab] = useState<"spider" | "company" | "people">("spider");
 
   const companyBurden = buildCompanyBurden(schedule, employees);
-  const personBurden  = buildPersonBurden(schedule, employees);
+  const personBurden = buildPersonBurden(schedule, employees);
 
   const tabs = [
-    { key: "spider",  label: "Company Mix"  },
+    { key: "spider", label: "Company Mix" },
     { key: "company", label: "Company Burden" },
-    { key: "people",  label: "Hardest Hits" },
+    { key: "people", label: "Hardest Hits" },
   ] as const;
 
   return (
@@ -127,11 +127,10 @@ export function ScheduleStatsCard({ schedule, employees, jobs, shifts }: Schedul
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                tab === t.key
-                  ? "bg-background shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${tab === t.key
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               {t.label}
             </button>
@@ -172,7 +171,7 @@ export function ScheduleStatsCard({ schedule, employees, jobs, shifts }: Schedul
             <div className="space-y-2">
               {companyBurden.map((c, rank) => {
                 const maxWorkload = companyBurden[0]?.totalWorkload || 1;
-                const pct        = Math.round((c.totalWorkload / maxWorkload) * 100);
+                const pct = Math.round((c.totalWorkload / maxWorkload) * 100);
                 return (
                   <div key={c.company} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
@@ -220,16 +219,15 @@ export function ScheduleStatsCard({ schedule, employees, jobs, shifts }: Schedul
         {tab === "people" && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              Effective score = base score + total fatigue from assigned slots.
-              Sorted hardest first.
+              People ranked by workload assigned in this generated schedule.
+              Higher means a harder duty today.
             </p>
             {personBurden.slice(0, 10).map((p, i) => (
               <div
                 key={p.name}
-                className={`flex items-start gap-3 rounded-lg px-3 py-2.5 ${
-                  i === 0 ? "bg-destructive/8 border border-destructive/20" :
-                  i <= 2  ? "bg-orange-50/60 dark:bg-orange-950/20" : "bg-muted/40"
-                }`}
+                className={`flex items-start gap-3 rounded-lg px-3 py-2.5 ${i === 0 ? "bg-destructive/8 border border-destructive/20" :
+                  i <= 2 ? "bg-orange-50/60 dark:bg-orange-950/20" : "bg-muted/40"
+                  }`}
               >
                 <span className="text-xs font-bold text-muted-foreground w-5 pt-0.5">
                   #{i + 1}
@@ -239,15 +237,14 @@ export function ScheduleStatsCard({ schedule, employees, jobs, shifts }: Schedul
                     <span className="text-sm font-semibold truncate">{p.name}</span>
                     <span
                       className="text-xs rounded-full px-2 py-0.5 font-bold shrink-0"
-                      style={scoreStyle(p.effectiveScore)}
+                      style={workloadStyle(p.totalWorkload)}
                     >
-                      {p.effectiveScore}
+                      {p.totalWorkload}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span>Co. {p.company}</span>
-                    <span>Base {p.baseScore}</span>
-                    <span>+{p.totalWorkload} workload</span>
+                    <span>Today's workload {p.totalWorkload}</span>
                   </div>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {p.slots.map((s, si) => (

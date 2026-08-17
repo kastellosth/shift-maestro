@@ -20,7 +20,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Employee } from "../../../types";
-import { API_BASE } from "../constants";
+import { API_BASE } from "../../../lib/api";
 
 export type DBLoaderStep = "choose" | "company";
 

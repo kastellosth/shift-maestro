@@ -20,8 +20,8 @@ import type {
   DeleteReason,
   EmployeeViewModel,
 } from "../types/employee";
+import { API_BASE } from "@/lib/api";
 
-const API = "http://localhost:3000/api";
 
 // ── ESSO / IClass option lists (also exported for components) ─────────────────
 export { ESSO_DEFAULT_ENTRY, resolveEntryDate } from "../types/employee";
@@ -31,71 +31,71 @@ export type { EssoBatch, IClass, DeleteReason, ActiveFilters, Employee, Employee
 
 interface State {
   employees: EmployeeViewModel[];
-  loading:      boolean;
-  saving:       boolean;
+  loading: boolean;
+  saving: boolean;
 
-  search:       string;
-  selected:     Set<string>;
+  search: string;
+  selected: Set<string>;
 
   activeFilters: ActiveFilters;
 
   /** IDs queued for deletion — non-null means the DeleteReasonModal is open */
   pendingDelete: string[] | null;
 
-  form:         EmployeeForm;
-  formError:    string | null;
+  form: EmployeeForm;
+  formError: string | null;
 
   selectedForSchedule: Set<string>;
 
   // ── Actions ────────────────────────────────────────────────────────────
-  setSearch:    (v: string) => void;
-  setForm:      (v: EmployeeForm) => void;
-  setFilters:   (f: Partial<ActiveFilters>) => void;
+  setSearch: (v: string) => void;
+  setForm: (v: EmployeeForm) => void;
+  setFilters: (f: Partial<ActiveFilters>) => void;
   clearFilters: () => void;
 
-  loadFromDB:   () => Promise<void>;
-  addEmployee:  () => void;
+  loadFromDB: () => Promise<void>;
+  addEmployee: () => void;
 
   updateEmployee: (
     id: string,
     field: keyof Omit<Employee, "id">,
     value: any,
-  ) => Promise<void>;
+  ) => void;
 
-  requestDelete:         (id: string) => void;
+  requestDelete: (id: string) => void;
   requestDeleteSelected: () => void;
-  confirmDelete:         (reason: DeleteReason) => Promise<void>;
-  cancelDelete:          () => void;
+  confirmDelete: (reason: DeleteReason) => Promise<void>;
+  cancelDelete: () => void;
 
   saveAll: () => Promise<void>;
 
   toggleSelect: (id: string) => void;
-  toggleAll:    (displayed: Employee[]) => void;
+  toggleAll: (displayed: Employee[]) => void;
 
   toggleSelectForSchedule: (id: string) => void;
-  clearSelection:          () => void;
-  loadByCompany:           (company: number) => void;
-  loadAllForSchedule:      () => void;
+  clearSelection: () => void;
+  loadByCompany: (company: number) => void;
+  loadAllForSchedule: () => void;
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useEmployeeStore = create<State>()(
   devtools((set, get) => ({
-    employees:           [],
-    loading:             false,
-    saving:              false,
-    search:              "",
-    selected:            new Set(),
-    activeFilters:       EMPTY_FILTERS,
-    pendingDelete:       null,
-    form:                DEFAULT_FORM,
-    formError:           null,
+    employees: [],
+    loading: false,
+    saving: false,
+    search: "",
+    selected: new Set(),
+    activeFilters: EMPTY_FILTERS,
+    pendingDelete: null,
+    form: DEFAULT_FORM,
+    formError: null,
     selectedForSchedule: new Set<string>(),
 
     // ── Basic ─────────────────────────────────────────────────────────────
     setSearch: (v) => set({ search: v }),
-    setForm:   (v) => set({ form: v }),
+    setForm: (v) => set({ form: v }),
 
     setFilters: (partial) =>
       set((s) => ({ activeFilters: { ...s.activeFilters, ...partial } })),
@@ -106,14 +106,23 @@ export const useEmployeeStore = create<State>()(
     loadFromDB: async () => {
       set({ loading: true });
       try {
-        const res  = await fetch(`${API}/employees`);
+        const res = await fetch(
+          `${API_BASE}/employees`
+        );
+
+        if (!res.ok) {
+          throw new Error(
+            `Failed to load employees: ${res.status}`
+          );
+        }
+
         const data = await res.json();
         set({
           employees: data.map((e: Employee) => ({
-            esso:          null,
+            esso: null,
             essoEntryDate: null,
-            iClass:        null,
-            armed:         false,
+            iClass: null,
+            armed: false,
             ...e,
             status: "saved",
           })),
@@ -133,15 +142,15 @@ export const useEmployeeStore = create<State>()(
         return;
       }
       const newEmp: EmployeeViewModel = {
-        id:            `local_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        surname:       form.surname.trim(),
-        name:          form.name.trim(),
-        company:       parseInt(form.company, 10) || 1,
-        score:         form.score ? parseInt(form.score, 10) : Math.floor(Math.random() * 50) + 50,
-        esso:          form.esso          || null,
+        id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        surname: form.surname.trim(),
+        name: form.name.trim(),
+        company: parseInt(form.company, 10) || 1,
+        score: 0,
+        esso: form.esso || null,
         essoEntryDate: form.essoEntryDate || null,
-        iClass:        form.iClass        || null,
-        armed:         form.armed,
+        iClass: form.iClass || null,
+        armed: form.armed,
         notes: form.notes.trim() || null,
         status: "new",
       };
@@ -150,26 +159,25 @@ export const useEmployeeStore = create<State>()(
     },
 
     // ── Update ────────────────────────────────────────────────────────────
-    updateEmployee: async (id, field, value) => {
-      const { employees } = get();
-      const emp = employees.find((e) => e.id === id);
-      if (!emp) return;
-      const updated: EmployeeViewModel= { ...emp, [field]: value, status: "dirty" };
-      set({ employees: employees.map((e) => e.id === id ? updated : e) });
-      try {
-        const res = await fetch(`${API}/employees/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updated),
-        });
-        if (!res.ok) throw new Error();
-        const saved = await res.json();
-        set((s) => ({
-          employees: s.employees.map((e) => e.id === id ? { ...saved, status: "saved" } : e),
-        }));
-      } catch {
-        toast.error("Update failed");
-      }
+    updateEmployee: (id, field, value) => {
+      set((state) => ({
+        employees: state.employees.map(
+          (employee) =>
+            employee.id === id
+              ? {
+                ...employee,
+                [field]: value,
+
+                // New employees must remain "new"
+                // so Save knows to POST them.
+                status:
+                  employee.status === "new"
+                    ? "new"
+                    : "dirty",
+              }
+              : employee
+        ),
+      }));
     },
 
     // ── Delete modal flow ─────────────────────────────────────────────────
@@ -193,7 +201,7 @@ export const useEmployeeStore = create<State>()(
         if (!emp) continue;
         if (emp.status !== "new") {
           try {
-            const res = await fetch(`${API}/employees/${id}`, { method: "DELETE" });
+            const res = await fetch(`${API_BASE}/employees/${id}`, { method: "DELETE" });
             if (!res.ok) { toast.error(`Failed to delete ${emp.surname}`); continue; }
           } catch {
             toast.error(`Failed to delete ${emp.surname}`);
@@ -201,8 +209,8 @@ export const useEmployeeStore = create<State>()(
           }
         }
         set((s) => ({
-          employees:           s.employees.filter((e) => e.id !== id),
-          selected:            new Set([...s.selected].filter((x) => x !== id)),
+          employees: s.employees.filter((e) => e.id !== id),
+          selected: new Set([...s.selected].filter((x) => x !== id)),
           selectedForSchedule: new Set([...s.selectedForSchedule].filter((x) => x !== id)),
         }));
       }
@@ -215,19 +223,94 @@ export const useEmployeeStore = create<State>()(
     // ── Save ──────────────────────────────────────────────────────────────
     saveAll: async () => {
       const { employees, loadFromDB } = get();
-      const newOnes = employees.filter((e) => e.status === "new");
-      if (!newOnes.length) { toast.info("Nothing to save"); return; }
+
+      const newEmployees = employees.filter(
+        (employee) => employee.status === "new"
+      );
+
+      const dirtyEmployees = employees.filter(
+        (employee) => employee.status === "dirty"
+      );
+
+      if (
+        newEmployees.length === 0 &&
+        dirtyEmployees.length === 0
+      ) {
+        toast.info("Nothing to save");
+        return;
+      }
+
+      set({ saving: true });
+
       try {
-        const res = await fetch(`${API}/employees`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newOnes),
-        });
-        if (!res.ok) throw new Error();
+        // ── 1. Create new employees ──────────────────────────
+
+        if (newEmployees.length > 0) {
+          const res = await fetch(
+            `${API_BASE}/employees`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify(
+                newEmployees
+              ),
+            }
+          );
+
+          if (!res.ok) {
+            throw new Error(
+              "Failed to create employees"
+            );
+          }
+        }
+
+        // ── 2. Update edited employees ──────────────────────
+
+        for (const employee of dirtyEmployees) {
+          const res = await fetch(
+            `${API_BASE}/employees/${employee.id}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify(employee),
+            }
+          );
+
+          if (!res.ok) {
+            throw new Error(
+              `Failed to update ${employee.surname}`
+            );
+          }
+        }
+
+        // ── 3. Reload canonical DB state ────────────────────
+
         await loadFromDB();
-        toast.success("Saved to database");
-      } catch {
-        toast.error("Save failed");
+
+        toast.success(
+          `Saved ${newEmployees.length +
+          dirtyEmployees.length
+          } employee${newEmployees.length +
+            dirtyEmployees.length ===
+            1
+            ? ""
+            : "s"
+          }`
+        );
+      } catch (error) {
+        console.error(error);
+
+        toast.error(
+          "Failed to save personnel changes"
+        );
+      } finally {
+        set({ saving: false });
       }
     },
 
@@ -255,8 +338,8 @@ export const useEmployeeStore = create<State>()(
         return { selectedForSchedule: sel };
       }),
 
-    clearSelection:     () => set({ selectedForSchedule: new Set<string>() }),
-    loadByCompany:      (company) =>
+    clearSelection: () => set({ selectedForSchedule: new Set<string>() }),
+    loadByCompany: (company) =>
       set({ selectedForSchedule: new Set(get().employees.filter((e) => e.company === company).map((e) => e.id)) }),
     loadAllForSchedule: () =>
       set({ selectedForSchedule: new Set(get().employees.map((e) => e.id)) }),
@@ -278,14 +361,14 @@ export function selectDisplayed(s: State): Employee[] {
         String(e.company).includes(q)
       )) return false;
       if (f.company !== null && e.company !== f.company) return false;
-      if (f.esso    !== null && e.esso    !== f.esso)    return false;
-      if (f.iClass  !== null && e.iClass  !== f.iClass)  return false;
-      if (f.armed   !== null && e.armed   !== f.armed)   return false;
+      if (f.esso !== null && e.esso !== f.esso) return false;
+      if (f.iClass !== null && e.iClass !== f.iClass) return false;
+      if (f.armed !== null && e.armed !== f.armed) return false;
       return true;
     })
     .sort((a, b) => {
-      if (f.groupBy === "company")       return a.company - b.company;
-      if (f.groupBy === "esso")          return (a.esso ?? "").localeCompare(b.esso ?? "");
+      if (f.groupBy === "company") return a.company - b.company;
+      if (f.groupBy === "esso") return (a.esso ?? "").localeCompare(b.esso ?? "");
       if (f.groupBy === "daysInService") {
         const da = a.essoEntryDate ? daysInService(a.essoEntryDate) : 0;
         const db = b.essoEntryDate ? daysInService(b.essoEntryDate) : 0;

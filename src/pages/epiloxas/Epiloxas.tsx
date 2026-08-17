@@ -9,13 +9,13 @@ import { Sparkles, ArrowLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { API_BASE } from "../../lib/api";
 import type {
   Employee,
   Job,
   ShiftGroup,
   PinnedAssignment,
 } from "../../types";
-import { randomScore } from "./utils";
 
 import { useDbLoader } from "./hooks/useDbLoader";
 import { useScheduler } from "./hooks/useScheduler";
@@ -46,7 +46,6 @@ const Epiloxas = () => {
   const [pins, setPins] = useState<
     Record<string, PinnedAssignment>
   >({});
-  // Load jobs & shifts from config (localStorage) so Config page changes take effect
   const [jobs, setJobs] =
     useState<Job[]>([]);
 
@@ -73,7 +72,7 @@ const Epiloxas = () => {
     const loadSchedulingConfig = async () => {
       try {
         const response = await fetch(
-          "http://localhost:3000/api/config"
+          `${API_BASE}/config`
         );
 
         if (!response.ok) {
@@ -116,7 +115,7 @@ const Epiloxas = () => {
         surname: parts[0] ?? n,
         name: parts.slice(1).join(" ") || "",
         company: 1,
-        score: randomScore(),
+        score: 0,
 
         esso: null,
         essoEntryDate: null,

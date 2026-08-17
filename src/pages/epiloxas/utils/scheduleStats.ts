@@ -113,13 +113,14 @@ export function buildCompanyBurden(
 export interface PersonBurden {
   name: string;
   company: number;
-  baseScore: number;
-  totalWorkload: number;        // sum of workload across all their slots
-  effectiveScore: number;      // baseScore + totalWorkload
-  slots: { jobLabel: string; shiftName: string; workload: number }[];
+  totalWorkload: number;
+  slots: {
+    jobLabel: string;
+    shiftName: string;
+    workload: number;
+  }[];
 }
 
-/** Returns every scheduled person's workload load, sorted hardest first. */
 export function buildPersonBurden(
   schedule: ScheduleGroup[],
   allEmployees: Employee[],
@@ -129,22 +130,25 @@ export function buildPersonBurden(
   for (const group of schedule) {
     for (const row of group.rows) {
       for (const personName of row.people) {
-        const emp = getEmployeeByName(personName, allEmployees);
+        const emp = getEmployeeByName(
+          personName,
+          allEmployees
+        );
+
         if (!emp) continue;
 
         if (!data[personName]) {
           data[personName] = {
             name: personName,
             company: emp.company,
-            baseScore: emp.score,
             totalWorkload: 0,
-            effectiveScore: emp.score,
             slots: [],
           };
         }
 
-        data[personName].totalWorkload += row.workload;
-        data[personName].effectiveScore = emp.score + data[personName].totalWorkload;
+        data[personName].totalWorkload +=
+          row.workload;
+
         data[personName].slots.push({
           jobLabel: row.job.label,
           shiftName: group.shiftGroup.name,
@@ -154,5 +158,9 @@ export function buildPersonBurden(
     }
   }
 
-  return Object.values(data).sort((a, b) => b.effectiveScore - a.effectiveScore);
+  return Object.values(data).sort(
+    (a, b) =>
+      b.totalWorkload -
+      a.totalWorkload
+  );
 }

@@ -22,9 +22,7 @@ import type {
 
 // ── Employee helpers ──────────────────────────────────────────────────────────
 
-export function randomScore(): number {
-  return Math.floor(Math.random() * 51) + 50;
-}
+
 
 export function fullName(employee: Employee): string {
   return `${employee.surname} ${employee.name}`.trim();
@@ -39,60 +37,10 @@ export function getEmployeeByName(
   );
 }
 
-// ── Burden / workload helpers ─────────────────────────────────────────────────
-//
-// Transitional UI helper.
-//
-// score = historical workload summary
-// workload = difficulty of the newly assigned job + shift
-//
-// Later we may replace this with a richer projected-burden calculation
-// that also includes current fatigue.
-
-export function assignmentScore(
-  personName: string,
-  workload: number,
-  employees: Employee[]
-): number {
-  const employee = getEmployeeByName(
-    personName,
-    employees
-  );
-
-  return (employee?.score ?? 0) + workload;
-}
 
 // ── Style helpers ─────────────────────────────────────────────────────────────
 
-export function scoreStyle(
-  score: number
-): React.CSSProperties {
-  if (score <= 60) {
-    return {
-      backgroundColor: "#EAF3DE",
-      color: "#3B6D11",
-    };
-  }
 
-  if (score <= 75) {
-    return {
-      backgroundColor: "#FAEEDA",
-      color: "#854F0B",
-    };
-  }
-
-  if (score <= 95) {
-    return {
-      backgroundColor: "#FAECE7",
-      color: "#993C1D",
-    };
-  }
-
-  return {
-    backgroundColor: "#FCEBEB",
-    color: "#A32D2D",
-  };
-}
 
 export function workloadStyle(
   workload: number

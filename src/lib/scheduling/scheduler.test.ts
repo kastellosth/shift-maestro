@@ -299,6 +299,11 @@ describe("buildSchedule historical ranking", () => {
       requiredPeople: 1,
     };
 
+
+
+
+
+
     const testHistory: Record<
       string,
       HistoricalAssignment[]
@@ -340,6 +345,243 @@ describe("buildSchedule historical ranking", () => {
 
     expect(guard.people[0]).toBe(
       "TEST OLD"
+    );
+  });
+
+
+  it("gives the hardest duty to the least fatigued employee when everyone is fatigued", () => {
+  const leastTired = employee(
+    "e1",
+    "LEAST TIRED"
+  );
+
+  const mostTired = employee(
+    "e2",
+    "MOST TIRED"
+  );
+
+  const previousLightJob: Job = {
+    id: "previous-light",
+    key: "previous-light",
+    label: "Previous Light Duty",
+    difficulty: 2,
+    requiredPeople: 1,
+  };
+
+  const previousHeavyJob: Job = {
+    id: "previous-heavy",
+    key: "previous-heavy",
+    label: "Previous Heavy Duty",
+    difficulty: 9,
+    requiredPeople: 1,
+  };
+
+  const hardJob: Job = {
+    id: "hard",
+    key: "hard",
+    label: "Hard Duty",
+    difficulty: 9,
+    requiredPeople: 1,
+  };
+
+  const easyJob: Job = {
+    id: "easy",
+    key: "easy",
+    label: "Easy Duty",
+    difficulty: 1,
+    requiredPeople: 1,
+  };
+
+  const testHistory: Record<
+    string,
+    HistoricalAssignment[]
+  > = {
+    e1: [
+      {
+        date: new Date(
+          "2026-08-13T00:00:00.000Z"
+        ),
+        job: previousLightJob,
+        shiftGroup: shifts[0],
+      },
+    ],
+
+    e2: [
+      {
+        date: new Date(
+          "2026-08-13T00:00:00.000Z"
+        ),
+        job: previousHeavyJob,
+        shiftGroup: shifts[0],
+      },
+    ],
+  };
+
+  const schedule = buildSchedule(
+    [leastTired, mostTired],
+    [easyJob, hardJob],
+    shifts,
+    testHistory,
+    targetDate,
+    noPins
+  );
+
+  const hard = findRow(
+    schedule,
+    "hard"
+  );
+
+  const easy = findRow(
+    schedule,
+    "easy"
+  );
+
+  expect(hard.people[0]).toBe(
+    "TEST LEAST TIRED"
+  );
+
+  expect(easy.people[0]).toBe(
+    "TEST MOST TIRED"
+  );
+});
+
+
+  it("prefers the rested employee even if they have done the job more often", () => {
+    const tired = employee(
+      "e1",
+      "TIRED"
+    );
+
+    const rested = employee(
+      "e2",
+      "RESTED"
+    );
+
+    const heavyOtherJob: Job = {
+      id: "heavy-id",
+      key: "heavy",
+      label: "Heavy Duty",
+      difficulty: 10,
+      requiredPeople: 1,
+    };
+
+    const testHistory: Record<
+      string,
+      HistoricalAssignment[]
+    > = {
+      e1: [
+        {
+          // Heavy work yesterday.
+          date: new Date(
+            "2026-08-13T00:00:00.000Z"
+          ),
+          job: heavyOtherJob,
+          shiftGroup: shifts[0],
+        },
+      ],
+
+      e2: [
+        historicalGuard(
+          "2026-07-01T00:00:00.000Z"
+        ),
+        historicalGuard(
+          "2026-07-02T00:00:00.000Z"
+        ),
+        historicalGuard(
+          "2026-07-03T00:00:00.000Z"
+        ),
+      ],
+    };
+
+    const schedule = buildSchedule(
+      [tired, rested],
+      singleGuardJob,
+      shifts,
+      testHistory,
+      targetDate,
+      noPins
+    );
+
+    const guard =
+      findRow(
+        schedule,
+        "guard"
+      );
+
+    expect(
+      guard.people[0]
+    ).toBe(
+      "TEST RESTED"
+    );
+  });
+
+  it("assigns the most rested employee to the hardest available duty", () => {
+    const rested =
+      employee("e1", "RESTED");
+
+    const tired =
+      employee("e2", "TIRED");
+
+    const hardJob: Job = {
+      id: "hard-id",
+      key: "hard",
+      label: "Hard Duty",
+      difficulty: 9,
+      requiredPeople: 1,
+    };
+
+    const easyJob: Job = {
+      id: "easy-id",
+      key: "easy",
+      label: "Easy Duty",
+      difficulty: 1,
+      requiredPeople: 1,
+    };
+
+    const testHistory: Record<
+      string,
+      HistoricalAssignment[]
+    > = {
+      e1: [],
+
+      e2: [
+        {
+          date: new Date(
+            "2026-08-13T00:00:00.000Z"
+          ),
+          job: {
+            id: "previous-id",
+            key: "previous",
+            label: "Previous Duty",
+            difficulty: 5,
+            requiredPeople: 1,
+          },
+          shiftGroup: shifts[0],
+        },
+      ],
+    };
+
+    const schedule = buildSchedule(
+      [rested, tired],
+      [easyJob, hardJob],
+      shifts,
+      testHistory,
+      targetDate,
+      noPins
+    );
+
+    const hard =
+      findRow(schedule, "hard");
+
+    const easy =
+      findRow(schedule, "easy");
+
+    expect(hard.people[0]).toBe(
+      "TEST RESTED"
+    );
+
+    expect(easy.people[0]).toBe(
+      "TEST TIRED"
     );
   });
 
