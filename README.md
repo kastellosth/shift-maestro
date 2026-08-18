@@ -4,6 +4,8 @@ Shift Maestro is a personnel duty scheduling application for generating and fina
 
 The scheduler uses persisted assignment history to distribute workload across personnel, prioritizing rested employees for harder duties while reducing repeated heavy workload over consecutive days.
 
+![Shift Maestro Generated Schedule](docs/screenshots/schedule.png)
+
 ## V1 Features
 
 ### Personnel
@@ -54,6 +56,27 @@ The scheduler uses persisted assignment history to distribute workload across pe
 - Prisma migrations applied automatically when the backend starts
 
 ---
+
+
+## Screenshots
+
+### Personnel Management
+
+Manage the personnel roster, service information, operational attributes, notes, filtering, grouping, CSV imports, and persisted employee records.
+
+![Personnel Management](docs/screenshots/personnel.png)
+
+### Employee Assignment History
+
+Review historical duties, accumulated workload, current fatigue, most-used jobs, and pinned assignments for individual personnel.
+
+![Employee Assignment History](docs/screenshots/history.png)
+
+### Scheduling Configuration
+
+Configure shift groups, shift difficulty, jobs, job difficulty, and required personnel without changing scheduler code.
+
+![Scheduling Configuration](docs/screenshots/configuration.png)
 
 ## Tech Stack
 
