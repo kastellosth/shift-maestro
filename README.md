@@ -59,7 +59,7 @@ The scheduler uses persisted assignment history to distribute workload across pe
 
 The production deployment uses nginx to serve the React/Vite frontend and reverse-proxy `/api` requests to the Express backend. Prisma provides database access to SQLite, which is stored on a persistent Docker volume.
 
-![Shift Maestro V1 Architecture](docs/diagrams/architecture.svg)
+![Shift Maestro V1 Architecture](docs/architecture.svg)
 
 ---
 
@@ -389,13 +389,13 @@ A person's historical assignments therefore influence future scheduling decision
 
 Pinned assignments are applied first. Remaining personnel are ranked using fatigue, recent workload, target-job repetition, and deterministic tie-breaking. The generated schedule is validated again during finalization before assignments are persisted atomically and returned to assignment history.
 
-![Shift Maestro V1 Scheduling Flow](docs/diagrams/scheduler-flow.svg)
+![Shift Maestro V1 Scheduling Flow](docs/scheduler-flow.svg)
 
 ## Database Model
 
 Finalized duties are represented by `Assignment` records linked to `Job` and `ShiftGroup`. Personnel participation is normalized through `AssignmentMember`, which also preserves whether an assignment was pinned.
 
-![Shift Maestro V1 Database ER Diagram](docs/diagrams/database-er.svg)
+![Shift Maestro V1 Database ER Diagram](docs/database-er.svg)
 
 ## Pinned Assignments
 
