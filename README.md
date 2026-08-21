@@ -55,6 +55,8 @@ The scheduler uses persisted assignment history to distribute workload across pe
 - Persistent Docker database volume
 - Prisma migrations applied automatically when the backend starts
 
+---
+
 ## Architecture
 
 The production deployment uses nginx to serve the React/Vite frontend and reverse-proxy `/api` requests to the Express backend. Prisma provides database access to SQLite, which is stored on a persistent Docker volume.
@@ -62,7 +64,6 @@ The production deployment uses nginx to serve the React/Vite frontend and revers
 ![Shift Maestro V1 Architecture](docs/architecture.png)
 
 ---
-
 
 ## Screenshots
 
@@ -83,6 +84,8 @@ Review historical duties, accumulated workload, current fatigue, most-used jobs,
 Configure shift groups, shift difficulty, jobs, job difficulty, and required personnel without changing scheduler code.
 
 ![Scheduling Configuration](docs/screenshots/configuration.png)
+
+---
 
 ## Tech Stack
 
@@ -387,13 +390,17 @@ A person's historical assignments therefore influence future scheduling decision
 
 ## Scheduling Flow
 
-Pinned assignments are applied first. Remaining personnel are ranked using fatigue, recent workload, target-job repetition, and deterministic tie-breaking. The generated schedule is validated again during finalization before assignments are persisted atomically and returned to assignment history.
+Pinned assignments are applied first. Remaining personnel are ranked using fatigue, recent workload, target-job repetition, and deterministic tie-breaking.
+
+Harder job/shift combinations are processed first. The generated schedule is validated again during finalization before assignments are persisted atomically and returned to assignment history.
 
 ![Shift Maestro V1 Scheduling Flow](docs/scheduler-flow.png)
 
 ## Database Model
 
-Finalized duties are represented by `Assignment` records linked to `Job` and `ShiftGroup`. Personnel participation is normalized through `AssignmentMember`, which also preserves whether an assignment was pinned.
+Finalized duties are represented by `Assignment` records linked to `Job` and `ShiftGroup`.
+
+Personnel participation is normalized through `AssignmentMember`, which also preserves whether an assignment was pinned.
 
 ![Shift Maestro V1 Database ER Diagram](docs/database-er.png)
 
