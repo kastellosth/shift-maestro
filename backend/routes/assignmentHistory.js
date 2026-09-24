@@ -1,45 +1,23 @@
 const express = require("express");
-const prisma = require("../lib/prisma");
+const {
+  getEmployeeAssignmentHistory,
+} = require("../services/assignmentHistory");
 
 const router = express.Router();
 
-router.get("/", async (_req, res) => {
+router.get("/:employeeId", async (req, res) => {
   try {
-    const members = await prisma.assignmentMember.findMany({
-      include: {
-        assignment: {
-          include: {
-            job: true,
-            shiftGroup: true,
-          },
-        },
-      },
+    const members = await getEmployeeAssignmentHistory(
+      req.params.employeeId
+    );
 
-      orderBy: {
-        assignment: {
-          date: "desc",
-        },
-      },
-    });
-
-    const history = {};
-
-    for (const member of members) {
-      const employeeId = member.employeeId;
-
-      if (!history[employeeId]) {
-        history[employeeId] = [];
-      }
-
-      history[employeeId].push({
-        assignmentId: member.assignment.id,
-        date: member.assignment.date,
-        job: member.assignment.job,
-        shiftGroup:
-          member.assignment.shiftGroup,
-        pinned: member.pinned,
-      });
-    }
+    const history = members.map((member) => ({
+      assignmentId: member.assignment.id,
+      date: member.assignment.date,
+      job: member.assignment.job,
+      shiftGroup: member.assignment.shiftGroup,
+      pinned: member.pinned,
+    }));
 
     return res.json(history);
   } catch (error) {

@@ -1,6 +1,6 @@
 import { API_BASE } from "@/lib/api";
 import type { Job, ShiftGroup } from "@/types";
-
+ 
 export interface EmployeeHistoryEntry {
   assignmentId: string;
   date: Date;
@@ -17,16 +17,11 @@ interface RawEmployeeHistoryEntry {
   pinned: boolean;
 }
 
-type AssignmentHistoryResponse = Record<
-  string,
-  RawEmployeeHistoryEntry[]
->;
-
 export async function getEmployeeAssignmentHistory(
   employeeId: string,
 ): Promise<EmployeeHistoryEntry[]> {
   const response = await fetch(
-    `${API_BASE}/assignment-history`,
+    `${API_BASE}/assignment-history/${employeeId}`,
   );
 
   if (!response.ok) {
@@ -35,10 +30,9 @@ export async function getEmployeeAssignmentHistory(
     );
   }
 
-  const data: AssignmentHistoryResponse =
-    await response.json();
+  const data: RawEmployeeHistoryEntry[] = await response.json();
 
-  return (data[employeeId] ?? []).map((entry) => ({
+  return data.map((entry) => ({
     ...entry,
     date: new Date(entry.date),
   }));
