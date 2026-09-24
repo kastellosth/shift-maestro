@@ -10,7 +10,12 @@ const employeeInputSchema = z.object({
 
   esso: z.enum(["Α", "Β", "Γ", "Δ", "Ε", "ΣΤ"]).nullable().optional(),
 
-  essoEntryDate: z.string().nullable().optional(),
+  essoEntryDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "essoEntryDate must be in YYYY-MM-DD format")
+    .refine((v) => !isNaN(new Date(v).getTime()), "essoEntryDate is not a valid date")
+    .nullable()
+    .optional(),
 
   iClass: z.enum(["I1", "I2", "I3", "I4", "I5"]).nullable().optional(),
 
