@@ -1,24 +1,18 @@
-// ─── Epiloxas.tsx (page component) ───────────────────────────────────────────
-//
-// Orchestration only. Wires hooks ↔ components, holds shared state.
-// Business logic lives in hooks/; rendering lives in components/.
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Sparkles, ArrowLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { API_BASE } from "../../lib/api";
+import { generateLocalId } from "../../lib/utils";
 import type {
   Employee,
-  Job,
-  ShiftGroup,
   PinnedAssignment,
 } from "../../types";
 
 import { useDbLoader } from "./hooks/useDbLoader";
 import { useScheduler } from "./hooks/useScheduler";
+import { useSchedulingConfig } from "../epiloxas/hooks/useSchedulingConfig";
 
 import { LoadEmployeesCard } from "./components/employees/LoadEmployeesCard";
 import { EmployeeTable } from "./components/employees/EmployeeTable";
@@ -46,16 +40,11 @@ const Epiloxas = () => {
   const [pins, setPins] = useState<
     Record<string, PinnedAssignment>
   >({});
-  const [jobs, setJobs] =
-    useState<Job[]>([]);
 
-  const [shifts, setShifts] =
-    useState<ShiftGroup[]>([]);
-
-  const [configLoading, setConfigLoading] =
-    useState(true);
   // noteModal carries the empId so the modal can read the current employee
   const [noteModal, setNoteModal] = useState<{ empId: string; text: string } | null>(null);
+
+  const { jobs, shifts, loading: configLoading } = useSchedulingConfig();
 
   const scheduler =
     useScheduler(
@@ -67,51 +56,17 @@ const Epiloxas = () => {
     );
   const dbLoader = useDbLoader();
 
-
-  useEffect(() => {
-    const loadSchedulingConfig = async () => {
-      try {
-        const response = await fetch(
-          `${API_BASE}/config`
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to load config: ${response.status}`
-          );
-        }
-
-        const data = await response.json();
-
-        setJobs(data.jobs);
-        setShifts(data.shifts);
-      } catch (error) {
-        console.error(
-          "Failed to load scheduling config:",
-          error
-        );
-
-        toast.error(
-          "Could not load scheduling configuration"
-        );
-      } finally {
-        setConfigLoading(false);
-      }
-    };
-
-    loadSchedulingConfig();
-  }, []);
   // ── Accept names forwarded via router state ───────────────────────────────
   useEffect(() => {
     const state = location.state as { names?: string[] } | null;
 
     if (!state?.names?.length) return;
 
-    const imported: Employee[] = state.names.map((n, i) => {
+    const imported: Employee[] = state.names.map((n) => {
       const parts = n.trim().split(" ");
 
       return {
-        id: String(i + 1),
+        id: generateLocalId("imported"),
         surname: parts[0] ?? n,
         name: parts.slice(1).join(" ") || "",
         company: 1,
