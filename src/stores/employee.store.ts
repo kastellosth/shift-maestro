@@ -6,6 +6,7 @@ import type { Employee, EmployeeForm, ActiveFilters, DeleteReason, EmployeeViewM
 import { getEmployees, createEmployees, updateEmployee as updateEmployeeApi, deleteEmployee, } from "../api/employee.api";
 import { createEmployeeFromForm } from "./employee.mapper";
 import { getEmployeesToSave } from "./employee.utils";
+import { generateLocalId } from "@/lib/utils";
 
 export { ESSO_DEFAULT_ENTRY, resolveEntryDate } from "../types/employee";
 export type { EssoBatch, IClass, DeleteReason, ActiveFilters, Employee, EmployeeForm } from "../types/employee";
@@ -50,7 +51,8 @@ interface State {
   toggleAll: (displayed: Employee[]) => void;
 }
 
-
+// createEmployees and updateEmployee both take the same shape (everything
+// except id/score/status), so one helper covers both call sites.
 function toPayload(employee: EmployeeViewModel) {
   const {
     id: _id,
@@ -118,7 +120,7 @@ export const useEmployeeStore = create<State>()(
 
       const newEmp = createEmployeeFromForm(
         form,
-        `local_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        generateLocalId(),
       );
 
       set((state) => ({

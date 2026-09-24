@@ -1,13 +1,3 @@
-// ─── components/employees/LoadEmployeesCard.tsx ───────────────────────────────
-//
-// WHY THIS FILE EXISTS:
-//   The "Load Employees" card is a self-contained UI unit with three distinct
-//   loading strategies (CSV, demo, DB). Extracting it means:
-//     • The page component calls <LoadEmployeesCard onLoad={setEmployees} />
-//       and never needs to know about FileReader, input[type=file], or toast
-//     • You can add a fourth loading strategy (e.g. "Paste JSON") here without
-//       touching the page at all
-
 import { Upload, Users } from "lucide-react";
 import { useCallback } from "react";
 import { toast } from "sonner";
@@ -15,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Employee } from "../../../../types";
+import { generateLocalId } from "../../../../lib/utils";
 import { DEMO_EMPLOYEES } from "../../constants";
 
 
@@ -33,11 +24,11 @@ export function LoadEmployeesCard({ employeeCount, onLoad, onOpenDbModal }: Load
     reader.onload = (evt) => {
       const text  = evt.target?.result as string;
       const lines = text.split("\n").filter((l) => l.trim());
-    const parsed: Employee[] = lines.slice(1).map((line, i) => {
+    const parsed: Employee[] = lines.slice(1).map((line) => {
   const p = line.split(",").map((x) => x.trim());
 
   return {
-    id: String(i + 1),
+    id: generateLocalId("csv"),
     surname: p[0] || "",
     name: p[1] || "",
     company: parseInt(p[2] ?? "1", 10) || 1,

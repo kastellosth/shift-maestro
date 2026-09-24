@@ -12,3 +12,7 @@ export function fullName(
 ): string {
   return `${employee.surname} ${employee.name}`.trim();
 }
+
+export function generateLocalId(prefix = "local"): string {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
