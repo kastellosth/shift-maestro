@@ -8,7 +8,7 @@ import Epiloxas from "./pages/epiloxas/Epiloxas.tsx";
 import SecondOffice from "./pages/SecondOffice.tsx";
 import Config from "./pages/Config.tsx";
 import NotFound from "./pages/NotFound.tsx";
-import PersonnelManager from "./pages/PersonnelManager.tsx";
+import PersonnelManager from "./pages/personnel/PersonnelPage.tsx";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -22,7 +22,8 @@ const App = () => (
           <Route path="/epiloxas" element={<Epiloxas />} />
           <Route path="/2og" element={<SecondOffice />} />
           <Route path="/config" element={<Config />} />
-<Route path="/personel" element={<PersonnelManager />} />          <Route path="*" element={<NotFound />} />
+          <Route path="/personnel" element={<PersonnelManager />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
