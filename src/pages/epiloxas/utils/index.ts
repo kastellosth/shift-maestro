@@ -2,31 +2,19 @@
 //
 // Shared pure helpers for the Epiloxas UI.
 //
-// IMPORTANT:
-// The scheduling algorithm no longer lives here.
-// The real scheduler is now:
-//
-//   src/lib/scheduler.ts
-//
-// and the scheduling-domain logic lives under:
-//
-//   src/lib/scheduling/
-//
-// This file should stay focused on UI-friendly helpers such as names,
-// styling, conflict detection, and CSV export.
+// 
 
 import type {
   Employee,
   ScheduleGroup,
 } from "../../../types";
+import { fullName } from "../../../lib/utils";
 
 // ── Employee helpers ──────────────────────────────────────────────────────────
 
 
 
-export function fullName(employee: Employee): string {
-  return `${employee.surname} ${employee.name}`.trim();
-}
+
 
 export function getEmployeeByName(
   name: string,

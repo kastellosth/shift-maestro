@@ -49,12 +49,12 @@ export function calculateRecentWorkload(
         targetDate
       );
 
-      // Ignore future assignments.
+      
       if (daysAgo < 0) {
         return total;
       }
 
-      // Outside our recent-workload window.
+      
       if (daysAgo >= windowDays) {
         return total;
       }

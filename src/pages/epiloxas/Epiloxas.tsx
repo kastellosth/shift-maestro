@@ -226,7 +226,7 @@ const Epiloxas = () => {
           </Button>
           <h1 className="text-xl font-semibold text-foreground">Επιλοχίας — Guard Shifts</h1>
           <div className="ml-auto">
-            <Button variant="outline" size="sm" onClick={() => navigate("/personel")}>
+            <Button variant="outline" size="sm" onClick={() => navigate("/personnel")}>
               <Users className="mr-2 h-4 w-4" />
               Manage Personnel
             </Button>

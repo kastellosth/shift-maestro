@@ -67,7 +67,5 @@ function calculateCurrentFatigue(history, targetDate = new Date()) {
 }
 
 module.exports = {
-  calculateAssignmentWorkload,
-  calculateHistoricalWorkload,
   calculateCurrentFatigue,
 };

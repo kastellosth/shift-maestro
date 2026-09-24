@@ -2,24 +2,8 @@ const express = require("express");
 const prisma = require("../lib/prisma");
 
 const router = express.Router();
-/**
- * GET /api/assignment-history
- *
- * Returns completed/persisted assignment history grouped by employee.
- *
- * Shape:
- * {
- *   employeeId: [
- *     {
- *       assignmentId,
- *       date,
- *       job,
- *       shiftGroup
- *     }
- *   ]
- * }
- */
-router.get("/", async (req, res) => {
+
+router.get("/", async (_req, res) => {
   try {
     const members = await prisma.assignmentMember.findMany({
       include: {
@@ -58,10 +42,10 @@ router.get("/", async (req, res) => {
     }
 
     return res.json(history);
-  } catch (err) {
+  } catch (error) {
     console.error(
       "Failed to fetch assignment history:",
-      err
+      error
     );
 
     return res.status(500).json({

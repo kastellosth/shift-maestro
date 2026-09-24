@@ -19,7 +19,7 @@ import type {
   PinnedAssignment,
 } from "../../../../types";
 
-import { fullName } from "../../utils";
+import { fullName } from "../../../../lib/utils";
 
 interface NoteModalProps {
   employee: Employee;

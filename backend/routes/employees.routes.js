@@ -8,7 +8,7 @@ const router = express.Router();
 const prisma = require("../lib/prisma");
 
 
-router.get("/", async (req, res) => {
+router.get("/", async (_req, res) => {
   try {
     const employees = await prisma.employee.findMany();
     res.json(employees);

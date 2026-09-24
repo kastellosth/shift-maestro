@@ -9,16 +9,22 @@ import type {
   PinnedAssignment,
 } from "../types";
 
-import { fullName } from "./schedule.utils";
+import { 
+  fullName 
+} from "./utils";
 
-import type { HistoricalAssignment } from "./scheduling/fatigue";
+import type { 
+  HistoricalAssignment 
+} from "./scheduling/fatigue";
 
 import {
   rankEmployeesForJob,
   type EmployeeSchedulingContext,
 } from "./scheduling/ranking";
 
-import { calculateAssignmentWorkload } from "./scheduling/workload";
+import { 
+  calculateAssignmentWorkload 
+} from "./scheduling/workload";
 
 type Slot = {
   job: Job;
@@ -48,30 +54,14 @@ export function buildSchedule(
     }
   }
 
-  // Hardest assignments first.
-  //
-  // This scheduler is greedy, so slot ordering matters.
-  //
-  // Our scheduling doctrine is:
-  //   hardest work → most rested available employee
-  //
-  // Processing difficult slots first prevents the best-rested people
-  // from being consumed by easy duties before harder work is assigned.
+ 
   slots.sort(
     (a, b) =>
       b.workload - a.workload
   );
 
-  // ── 2. Build available employee pool ─────────────────────────────────────
 
-  // Employees are NOT globally sorted anymore.
-  //
-  // Their ranking depends on the particular job and target date:
-  //
-  //   1. lower current fatigue
-//   2. lower recent workload
-//   3. fewer repetitions of this job
-  const pool = [...employees];
+  
 
   // Employees already assigned somewhere in this generated schedule.
   const assigned = new Set<string>();
@@ -82,7 +72,7 @@ export function buildSchedule(
     slot: Slot,
     requiredPeople: number
   ): Employee[] => {
-    const available = pool.filter(
+    const available = employees.filter(
       (employee) => !assigned.has(employee.id)
     );
 

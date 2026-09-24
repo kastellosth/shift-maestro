@@ -9,7 +9,8 @@
 //   3. Individual burden ranking — the hardest-hit people in the schedule
 
 import type { Employee, ScheduleGroup } from "../../../types";
-import { getEmployeeByName, fullName } from "./index";
+import { getEmployeeByName } from "./index";
+import  { fullName } from "../../../lib/utils";
 
 // ─── 1. Spider data ───────────────────────────────────────────────────────────
 

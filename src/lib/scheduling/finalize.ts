@@ -4,7 +4,7 @@ import type {
   ScheduleGroup,
 } from "../../types";
 
-import { fullName } from "../schedule.utils";
+import { fullName } from "../../lib/utils";
 
 export interface FinalizedAssignmentInput {
   jobId: string;
@@ -27,8 +27,7 @@ export function buildFinalizeSchedulePayload(
   pins: Record<string, PinnedAssignment>,
   targetDate: Date
 ): FinalizeSchedulePayload {
-  // One name can theoretically match multiple employees,
-  // so keep arrays instead of assuming names are unique.
+
   const employeesByName = new Map<
     string,
     Employee[]

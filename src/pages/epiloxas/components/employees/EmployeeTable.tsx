@@ -2,16 +2,11 @@
 //
 // WHY THIS FILE EXISTS:
 //   This component has one job: render a filterable, sortable list of employees.
-//   It knows nothing about schedules, drag-drop, or the DB modal.
-//
-//   "Single Responsibility Principle" — every component should do one thing.
-//   When you come back in 3 months to add a column, you open this file, not
-//   a 900-line page file. The search/sort controls are co-located here because
-//   they only affect this table.
+
+
 
 import { StickyNote } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
