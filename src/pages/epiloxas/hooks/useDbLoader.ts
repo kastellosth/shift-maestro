@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Employee } from "../../../types";
-import { API_BASE } from "../../../lib/api";
+import { getEmployees } from "../../../api/employee.api";
 
 export type DBLoaderStep = "choose" | "company";
 
@@ -61,9 +61,7 @@ export function useDbLoader(): UseDbLoaderReturn {
   const handleLoadAllFromDB = async (onSuccess: (employees: Employee[]) => void) => {
     setDbLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/employees`);
-      if (!res.ok) throw new Error();
-      const data: Employee[] = await res.json();
+      const data = await getEmployees();
       onSuccess(data);
       setDbModal(false);
       toast.success(`${data.length} employees loaded from database`);
@@ -78,9 +76,7 @@ export function useDbLoader(): UseDbLoaderReturn {
   const handleOpenCompanyPicker = async () => {
     setDbLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/employees`);
-      if (!res.ok) throw new Error();
-      const data: Employee[] = await res.json();
+      const data = await getEmployees();
       setDbEmployees(data);
 
       const checks: Record<number, Set<string>> = {};
@@ -148,5 +144,3 @@ export function useDbLoader(): UseDbLoaderReturn {
     handleLoadAllFromDB, handleOpenCompanyPicker, handleConfirmCompanySelection,
   };
 }
-
-
