@@ -1,11 +1,3 @@
-// ─── Config.tsx ───────────────────────────────────────────────────────────────
-//
-// Settings page for the scheduling catalogue.
-//
-// Jobs and shifts are loaded from and saved to the backend.
-// Removed catalogue entries are deactivated server-side so
-// historical Assignment relations remain intact.
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -17,31 +9,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { Job, ShiftGroup } from "../types";
-import { API_BASE } from "../lib/api";
+import { updateSchedulingConfig } from "../api/Config.api";
+import { useSchedulingConfig } from "../pages/epiloxas/hooks/useSchedulingConfig";
+import { generateLocalId } from "../lib/utils";
 import {
   DEFAULT_JOBS,
   DEFAULT_SHIFTS,
 } from "./epiloxas/constants";
-// ── Tiny id generator (no uuid dep needed) ────────────────────────────────────
-const uid = () => `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 const Config = () => {
   const navigate = useNavigate();
 
-  // Initialise from localStorage (or defaults if first visit)
-  const [jobs, setJobs] =
-    useState<Job[]>(DEFAULT_JOBS);
+  const {
+    jobs,
+    shifts,
+    loading: configLoading,
+    setJobs,
+    setShifts,
+  } = useSchedulingConfig({ jobs: DEFAULT_JOBS, shifts: DEFAULT_SHIFTS });
 
-  const [shifts, setShifts] =
-    useState<ShiftGroup[]>(DEFAULT_SHIFTS);
+  const [saving, setSaving] = useState(false);
 
-  const [configLoading, setConfigLoading] =
-    useState(true);
   const [orgName, setOrgName] = useState<string>(
     () => localStorage.getItem("epiloxas_orgname") ?? "",
   );
+
+  // Persist orgName as it changes — previously read-only, never written back.
+  useEffect(() => {
+    localStorage.setItem("epiloxas_orgname", orgName);
+  }, [orgName]);
 
   // ── Derived totals ─────────────────────────────────────────────────────────
   const peoplePerShift = jobs.reduce((s, j) => s + j.requiredPeople, 0);
@@ -49,10 +47,10 @@ const Config = () => {
 
   // ── Job helpers ────────────────────────────────────────────────────────────
   const addJob = () => {
-    const key = `JOB_${uid().toUpperCase()}`;
+    const key = `JOB_${generateLocalId().toUpperCase()}`;
     setJobs((prev) => [
       ...prev,
-      { id: uid(), key, label: "New Job", difficulty: 1, requiredPeople: 1 },
+      { id: generateLocalId(), key, label: "New Job", difficulty: 1, requiredPeople: 1 },
     ]);
   };
 
@@ -72,7 +70,7 @@ const Config = () => {
     const nextName = letters.split("").find((l) => !usedNames.has(l)) ?? `S${shifts.length + 1}`;
     setShifts((prev) => [
       ...prev,
-      { id: uid(), name: nextName, label: "00:00–08:00", difficulty: prev.length + 1 },
+      { id: generateLocalId(), name: nextName, label: "00:00–08:00", difficulty: prev.length + 1 },
     ]);
   };
 
@@ -85,66 +83,14 @@ const Config = () => {
     setShifts((prev) => prev.filter((s) => s.id !== id));
   };
 
-  useEffect(() => {
-    const loadConfigFromBackend = async () => {
-      try {
-        const response = await fetch(
-          `${API_BASE}/config`
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to load config: ${response.status}`
-          );
-        }
-
-        const data = await response.json();
-
-        setJobs(data.jobs);
-        setShifts(data.shifts);
-      } catch (error) {
-        console.error(
-          "Failed to load configuration:",
-          error
-        );
-
-        toast.error(
-          "Could not load scheduling configuration"
-        );
-      } finally {
-        setConfigLoading(false);
-      }
-    };
-
-    loadConfigFromBackend();
-  }, []);
   // ── Save ───────────────────────────────────────────────────────────────────
   const handleSave = async () => {
+    setSaving(true);
+
     try {
-      const response = await fetch(
-        `${API_BASE}/config`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            jobs,
-            shifts,
-          }),
-        }
-      );
+      const data = await updateSchedulingConfig({ jobs, shifts });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.error ?? "Failed to save configuration"
-        );
-      }
-
-      // Important:
-      // Use the canonical version returned by the database.
+      // Important: use the canonical version returned by the database.
       setJobs(data.jobs);
       setShifts(data.shifts);
 
@@ -160,6 +106,8 @@ const Config = () => {
           ? error.message
           : "Failed to save configuration"
       );
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -383,12 +331,14 @@ const Config = () => {
             <Button
               size="sm"
               onClick={handleSave}
-              disabled={configLoading}
+              disabled={configLoading || saving}
             >
               <Save className="h-3.5 w-3.5 mr-1.5" />
               {configLoading
                 ? "Loading..."
-                : "Save Settings"}
+                : saving
+                  ? "Saving..."
+                  : "Save Settings"}
             </Button>
           </div>
         </div>
