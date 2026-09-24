@@ -50,8 +50,7 @@ interface State {
   toggleAll: (displayed: Employee[]) => void;
 }
 
-// createEmployees and updateEmployee both take the same shape (everything
-// except id/score/status), so one helper covers both call sites.
+
 function toPayload(employee: EmployeeViewModel) {
   const {
     id: _id,
