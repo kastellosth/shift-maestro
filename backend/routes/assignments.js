@@ -6,23 +6,15 @@ const {
 
 const router = express.Router();
 
-/**
- * POST /api/assignments
- *
- * Finalizes one complete schedule.
- *
- * Validates:
- * - request shape
- * - no employee appears twice
- * - jobs exist
- * - each job has exactly requiredPeople members
- * - no duplicate job + shift rows
- *
- * Then persists everything atomically.
- */
+function normalizeScheduleDate(value) {
+  const date = new Date(value);
+  date.setUTCHours(0, 0, 0, 0);
+  return date;
+}
+
+
 router.post("/", async (req, res) => {
   try {
-    // ── 1. Validate request shape ────────────────────────
     const result = finalizeScheduleSchema.safeParse(req.body);
 
     if (!result.success) {
@@ -33,23 +25,10 @@ router.post("/", async (req, res) => {
     }
 
     const { date, assignments } = result.data;
-    function normalizeScheduleDate(value) {
-      const date = new Date(value);
-
-      date.setUTCHours(
-        0,
-        0,
-        0,
-        0
-      );
-
-      return date;
-    }
 
     const assignmentDate =
       normalizeScheduleDate(date);
 
-    // ── 2. No employee may appear twice ─────────────────
     const employeeIds = assignments.flatMap((assignment) =>
       assignment.members.map((member) => member.employeeId)
     );
@@ -74,7 +53,6 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // ── 3. No duplicate job + shift slot ────────────────
     const slotKeys = assignments.map(
       (assignment) =>
         `${assignment.jobId}:${assignment.shiftGroupId}`
@@ -86,7 +64,6 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // ── 4. Load referenced jobs ──────────────────────────
     const jobIds = [
       ...new Set(
         assignments.map((assignment) => assignment.jobId)
@@ -105,7 +82,6 @@ router.post("/", async (req, res) => {
       jobs.map((job) => [job.id, job])
     );
 
-    // ── 5. Validate required personnel ───────────────────
     for (const assignment of assignments) {
       const job = jobsById.get(assignment.jobId);
 
@@ -125,7 +101,6 @@ router.post("/", async (req, res) => {
       }
     }
 
-    // ── 6. Persist complete schedule atomically ──────────
     const createdAssignments = await prisma.$transaction(
       assignments.map((assignment) =>
         prisma.assignment.create({
