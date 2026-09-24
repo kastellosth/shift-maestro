@@ -6,6 +6,11 @@
 // ── ESSO batch ────────────────────────────────────────────────────────────────
 export type EssoBatch = "Α" | "Β" | "Γ" | "Δ" | "Ε" | "ΣΤ";
 
+// Canonical option list — FilterBar, PersonnelPage's Add form, and anywhere
+// else that renders a batch picker should import this instead of hardcoding
+// their own copy of the array.
+export const ESSO_OPTIONS: EssoBatch[] = ["Α", "Β", "Γ", "Δ", "Ε", "ΣΤ"];
+
 // Default entry dates per batch (MM-DD). Β/Γ/Δ unknown — fill manually.
 export const ESSO_DEFAULT_ENTRY: Record<EssoBatch, string | null> = {
   "Α":  "01-10",   // 10 January
@@ -17,12 +22,18 @@ export const ESSO_DEFAULT_ENTRY: Record<EssoBatch, string | null> = {
 };
 
 /**
- * Resolves the most recent past ISO date (YYYY-MM-DD) for a given batch.
- * If an override date is provided it takes precedence.
- * Returns null if neither the batch has a default nor an override is given.
+ * Resolves the entry date for a given batch.
+ * - If `override` is provided, it's already a full ISO date (YYYY-MM-DD,
+ *   e.g. from a date picker) and is returned as-is — it must NOT be run
+ *   through the MM-DD resolution below, which only applies to a batch's
+ *   default day.
+ * - Otherwise, resolves the batch's default MM-DD to the most recent past
+ *   occurrence. Returns null if neither an override nor a default exists.
  */
 export function resolveEntryDate(batch: EssoBatch, override?: string | null): string | null {
-  const mmdd = override ?? ESSO_DEFAULT_ENTRY[batch];
+  if (override) return override;
+
+  const mmdd = ESSO_DEFAULT_ENTRY[batch];
   if (!mmdd) return null;
   const today = new Date();
   const [mm, dd] = mmdd.split("-").map(Number);
@@ -42,6 +53,8 @@ export function daysInService(entryDateISO: string): number {
 
 // ── I-class ───────────────────────────────────────────────────────────────────
 export type IClass = "I1" | "I2" | "I3" | "I4" | "I5";
+
+export const ICLASS_OPTIONS: IClass[] = ["I1", "I2", "I3", "I4", "I5"];
 
 // ── Delete reason ─────────────────────────────────────────────────────────────
 export type DeleteReason = "laid_off" | "changed_battalion";
