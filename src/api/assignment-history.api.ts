@@ -1,6 +1,7 @@
 import { API_BASE } from "@/lib/api";
 import type { Job, ShiftGroup } from "@/types";
- 
+import type { ApiAssignmentHistory } from "@/lib/scheduling/history";
+
 export interface EmployeeHistoryEntry {
   assignmentId: string;
   date: Date;
@@ -36,4 +37,16 @@ export async function getEmployeeAssignmentHistory(
     ...entry,
     date: new Date(entry.date),
   }));
+}
+
+export async function getAllAssignmentHistory(): Promise<ApiAssignmentHistory> {
+  const response = await fetch(`${API_BASE}/assignment-history`);
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load history: ${response.status}`,
+    );
+  }
+
+  return response.json();
 }
